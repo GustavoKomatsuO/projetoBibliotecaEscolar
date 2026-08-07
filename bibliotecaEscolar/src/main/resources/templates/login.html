@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Biblioteca Escolar</title>
+</head>
+<body>
+<h2>Acesso ao Sistema</h2>
+
+<p th:if="${erro}" th:text="${erro}" style="color: red;"></p>
+<p th:if="${sucesso}" th:text="${sucesso}" style="color: green;"></p>
+
+<form th:action="@{/autenticar}" method="post">
+    <div>
+        <label>CPF:</label>
+        <input type="text" name="cpf" placeholder="000.000.000-00" required />
+    </div>
+    <br>
+    <div>
+        <label>Senha:</label>
+        <input type="password" name="senha" required />
+    </div>
+    <br>
+    <button type="submit">Entrar</button>
+</form>
+
+<br>
+<hr>
+<p>Ainda não tem uma conta?</p>
+<a th:href="@{/cadastrar}">
+    <button type="button">Criar conta</button>
+</a>
+</body>
+</html>
