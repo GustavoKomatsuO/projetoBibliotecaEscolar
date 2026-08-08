@@ -1,11 +1,112 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TestUser</title>
+    <title>Acervo Bibliográfico - IGP3</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
-<h1>FUNCIONOU USER</h1>
+
+<header class="header-content">
+    <span class="header-badge">Biblioteca Digital</span>
+    <h1>IGP3 - Acervo Bibliográfico</h1>
+    <p>Consulte os materiais didáticos, literários e de pesquisa disponíveis.</p>
+</header>
+
+<main class="library-container">
+
+    <section class="search-section" aria-label="Busca no acervo">
+        <input type="text" id="searchInput" placeholder="Pesquisar por título do livro ou autor..." />
+        <select id="categoryFilter">
+            <option value="todos">Todas as Categorias</option>
+            <option value="ficcao">Ficção / Literatura</option>
+            <option value="filosofia">Filosofia</option>
+            <option value="politica">Política / História</option>
+            <option value="ciencia">Ciência</option>
+            <option value="psicologia">Psicologia</option>
+            <option value="economia">Economia</option>
+            <option value="manga">Mangá</option>
+        </select>
+    </section>
+
+    <section class="user-section" aria-label="Meus empréstimos">
+        <h2>Meus empréstimos</h2>
+        <p>Visualize os livros emprestados para o usuário atual.</p>
+
+        <p class="user-summary" id="userSummary">
+            Usuário atual: <strong th:text="${session.usuarioLogado != null ? session.usuarioLogado.nome : 'Visitante'}">Visitante</strong>
+        </p>
+
+        <nav class="user-actions">
+            <a th:href="@{/logout}" class="forgot-link" style="color: red;">Sair da Conta</a>
+        </nav>
+
+        <div class="loans-list" id="loansList"></div>
+    </section>
+
+    <section class="book-grid" id="bookGrid" aria-label="Lista de livros">
+
+        <article class="book-card ficcao" data-categoria="ficcao" data-description="Clássico de Machado de Assis sobre amor, ciúme e memória.">
+            <img src="https://m.media-amazon.com/images/I/416E0ngf0xL._SY445_SX342_ML2_.jpg" alt="Capa Dom Casmurro" />
+            <h3>Dom Casmurro</h3>
+            <p>Machado de Assis</p>
+            <span class="tag">Ficção</span>
+        </article>
+
+        <article class="book-card ficcao" data-categoria="ficcao" data-description="A fábula poética de Saint-Exupéry sobre amizade, simplicidade e imaginação.">
+            <img src="https://m.media-amazon.com/images/I/81QluJ4QXyL._SY425_.jpg" alt="Capa O Pequeno Príncipe" />
+            <h3>O Pequeno Príncipe</h3>
+            <p>Antoine de Saint-Exupéry</p>
+            <span class="tag">Ficção</span>
+        </article>
+
+        <article class="book-card ficcao" data-categoria="ficcao" data-description="Distopia de Orwell sobre vigilância, poder e linguagem.">
+            <img src="https://m.media-amazon.com/images/I/819js3EQwbL._AC_UF1000,1000_QL80_.jpg" alt="Capa 1984" />
+            <h3>1984</h3>
+            <p>George Orwell</p>
+            <span class="tag">Ficção</span>
+        </article>
+
+        <article class="book-card ciencia" data-categoria="ciencia" data-description="Stephen Hawking apresenta os mistérios do universo para leigos.">
+            <img src="https://m.media-amazon.com/images/I/51FBILW8cWS._SY445_SX342_ML2_.jpg" alt="Capa Uma Breve História do Tempo" />
+            <h3>Uma Breve História do Tempo</h3>
+            <p>Stephen Hawking</p>
+            <span class="tag">Ciência</span>
+        </article>
+
+        <article class="book-card manga" data-categoria="manga" data-description="Suspense psicológico em quadrinhos de Naoki Urasawa.">
+            <img src="https://m.media-amazon.com/images/I/51fhvwjCziL._SY445_SX342_ML2_.jpg" alt="Capa Monster Vol. 1" />
+            <h3>Monster</h3>
+            <p>Naoki Urasawa</p>
+            <span class="tag">Mangá</span>
+        </article>
+
+    </section>
+</main>
+
+<dialog class="modal-overlay" id="bookModal" aria-hidden="true">
+    <div class="modal" role="document">
+        <button type="button" class="modal-close" id="closeModal" aria-label="Fechar">×</button>
+        <div class="modal-grid">
+            <img src="" alt="" id="modalImage" />
+            <div>
+                <h2 id="modalTitle">Título do livro</h2>
+                <header class="modal-meta">
+                    <span id="modalAuthor">Autor</span>
+                    <span class="tag" id="modalCategory">Categoria</span>
+                    <span class="status-pill" id="modalStatus">Disponível</span>
+                </header>
+                <p class="modal-description" id="modalDescription">
+                    Clique em um livro para ver mais detalhes, sinopse e a opção de emprestá-lo.
+                </p>
+                <footer class="modal-actions">
+                    <button type="button" class="btn-borrow" id="modalBorrowButton">Emprestar</button>
+                </footer>
+            </div>
+        </div>
+    </div>
+</dialog>
+
 </body>
 </html>

@@ -10,8 +10,9 @@ public class Exemplar {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idExemplar;
 
-    @Column(nullable = false)
-    private String statusExemplar = "DISPONIVEL";
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status_disponibilidade", nullable = false)
+    private StatusDisponibilidade statusDisponibilidade = StatusDisponibilidade.DISPONIVEL;
 
     @ManyToOne
     @JoinColumn(name = "isbn_livro", nullable = false)
@@ -19,16 +20,25 @@ public class Exemplar {
 
     public Exemplar() {}
 
-    public Exemplar(Livro livro, String statusExemplar) {
+    // CORREÇÃO 1: O construtor agora recebe o Enum StatusDisponibilidade
+    public Exemplar(Livro livro, StatusDisponibilidade statusDisponibilidade) {
         this.livro = livro;
-        this.statusExemplar = statusExemplar;
+        this.statusDisponibilidade = statusDisponibilidade;
     }
 
-    // Getters e Setters
     public Long getIdExemplar() { return idExemplar; }
     public void setIdExemplar(Long idExemplar) { this.idExemplar = idExemplar; }
-    public String getStatusExemplar() { return statusExemplar; }
-    public void setStatusExemplar(String statusExemplar) { this.statusExemplar = statusExemplar; }
+
+    // CORREÇÃO 2: O Getter agora devolve o Enum (StatusDisponibilidade) em vez de String
+    public StatusDisponibilidade getStatusDisponibilidade() {
+        return statusDisponibilidade;
+    }
+
+    // CORREÇÃO 3: O Setter agora recebe o Enum (StatusDisponibilidade) em vez de String
+    public void setStatusDisponibilidade(StatusDisponibilidade statusDisponibilidade) {
+        this.statusDisponibilidade = statusDisponibilidade;
+    }
+
     public Livro getLivro() { return livro; }
     public void setLivro(Livro livro) { this.livro = livro; }
 }
