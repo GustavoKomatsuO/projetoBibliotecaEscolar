@@ -19,47 +19,61 @@ public class LoginController {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
+    // Redireciona a raiz para a tela de login
     @GetMapping("/")
     public String index() {
         return "redirect:/login";
     }
 
+    // Exibe a tela de login
     @GetMapping("/login")
     public String paginaLogin() {
         return "login";
     }
 
-    // --- NOVA ROTA: Exibe a tela de cadastro ---
+    // Exibe a tela de cadastro
     @GetMapping("/cadastrar")
     public String paginaCadastro() {
-        return "usuario/cadastrarUser"; // Ajustado com a pasta usuario/
+        return "usuario/cadastrarUser";
     }
 
-    // --- NOVA ROTA: Processa o formulário de cadastro ---
+    // Processa o formulário de cadastro com a regra da senha especial
     @PostMapping("/cadastrar/salvar")
     public String salvarCadastro(Usuario usuario,
                                  @RequestParam("confirmarSenha") String confirmarSenha,
                                  Model model) {
 
-        // 1. Verifica se as senhas batem
+        // 1. Verifica se as senhas coincidem
         if (!usuario.getSenha().equals(confirmarSenha)) {
             model.addAttribute("erro", "As senhas não coincidem!");
-            return "cadastrar-usuario";
+            return "usuario/cadastrarUser";
         }
 
-        // 2. Verifica se o CPF já está cadastrado
+        // 2. Verifica se o CPF já está registrado no MySQL
         if (usuarioRepository.findByCpf(usuario.getCpf()).isPresent()) {
             model.addAttribute("erro", "CPF já cadastrado no sistema!");
-            return "cadastrar-usuario";
+            return "usuario/cadastrarUser";
         }
 
-        // 3. Salva o novo usuário no MySQL
+        // 3. LÓGICA DA SENHA: Define TipoUsuario (Instrutor/Funcionário ou Aluno)
+        String senhaDigitada = usuario.getSenha();
+
+        // Se a senha começar com "@adm" E o restante tiver pelo menos 6 caracteres (mínimo de 10 no total)
+        if (senhaDigitada.startsWith("@adm") && senhaDigitada.length() >= 10) {
+            // Define como FUNCIONARIO / INSTRUTOR
+            usuario.setTipoUsuario(TipoUsuario.INSTRUTOR);
+        } else {
+            // Padrão geral cai como ALUNO
+            usuario.setTipoUsuario(TipoUsuario.ALUNO);
+        }
+
+        // 4. Salva no banco de dados MySQL
         usuarioRepository.save(usuario);
 
-        model.addAttribute("sucesso", "Conta criada com sucesso! Faça login abaixo.");
-        return "login";
+        return "redirect:/login?sucessoCadastro";
     }
 
+    // Processa a autenticação/login do usuário
     @PostMapping("/autenticar")
     public String autenticar(@RequestParam("cpf") String cpf,
                              @RequestParam("senha") String senha,
@@ -75,7 +89,7 @@ public class LoginController {
             if (usuario.getTipoUsuario() == TipoUsuario.FUNCIONARIO) {
                 return "admin/testAdm";
             } else {
-                return "usuario/testUser";
+                return "redirect:/usuario/testUser";
             }
         }
 
@@ -83,6 +97,7 @@ public class LoginController {
         return "login";
     }
 
+    // Realiza o logout limpando a sessão
     @GetMapping("/logout")
     public String logout(HttpSession session) {
         session.invalidate();

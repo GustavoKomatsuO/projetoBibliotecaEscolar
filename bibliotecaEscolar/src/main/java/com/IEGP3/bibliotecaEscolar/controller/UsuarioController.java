@@ -3,6 +3,7 @@ package com.IEGP3.bibliotecaEscolar.controller;
 import com.IEGP3.bibliotecaEscolar.model.TipoUsuario;
 import com.IEGP3.bibliotecaEscolar.model.Usuario;
 import com.IEGP3.bibliotecaEscolar.repository.UsuarioRepository;
+import jakarta.annotation.Nonnull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -28,7 +29,7 @@ public class UsuarioController {
 
     // 2. Abrir o formulário para criar um novo usuário (Balcão do Admin)
     @GetMapping("/novo")
-    public String formularioNovoUsuario(Model model) {
+    public String formularioNovoUsuario(@Nonnull Model model) {
         model.addAttribute("usuario", new Usuario());
         return "admin/cadastrar-usuario";
     }

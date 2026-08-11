@@ -32,8 +32,6 @@
 
     <section class="user-section" aria-label="Meus empréstimos">
         <h2>Meus empréstimos</h2>
-        <p>Visualize os livros emprestados para o usuário atual.</p>
-
         <p class="user-summary" id="userSummary">
             Usuário atual: <strong th:text="${session.usuarioLogado != null ? session.usuarioLogado.nome : 'Visitante'}">Visitante</strong>
         </p>

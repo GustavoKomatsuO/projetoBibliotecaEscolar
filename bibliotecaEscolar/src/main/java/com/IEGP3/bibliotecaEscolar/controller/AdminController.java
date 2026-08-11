@@ -24,7 +24,7 @@ public class AdminController {
     @GetMapping("/dashboard")
     public String dashboard(HttpSession session, Model model) {
         Usuario logado = (Usuario) session.getAttribute("usuarioLogado");
-        if (logado == null || logado.getTipoUsuario() != TipoUsuario.FUNCIONARIO) {
+        if (logado == null || logado.getTipoUsuario() != TipoUsuario.BIBLIOTECARIO) {
             return "redirect:/login";
         }
         model.addAttribute("usuario", logado);
