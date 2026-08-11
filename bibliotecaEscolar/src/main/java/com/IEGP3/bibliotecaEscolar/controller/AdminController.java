@@ -21,6 +21,16 @@ public class AdminController {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
+    // Rota para a página de testes do Admin (templates/admin/testAdm.html)
+    @GetMapping("/testAdm")
+    public String testAdm(HttpSession session) {
+        Usuario logado = (Usuario) session.getAttribute("usuarioLogado");
+        if (logado == null || logado.getTipoUsuario() != TipoUsuario.BIBLIOTECARIO) {
+            return "redirect:/login";
+        }
+        return "admin/testAdm";
+    }
+
     @GetMapping("/dashboard")
     public String dashboard(HttpSession session, Model model) {
         Usuario logado = (Usuario) session.getAttribute("usuarioLogado");

@@ -43,31 +43,24 @@ public class LoginController {
                                  @RequestParam("confirmarSenha") String confirmarSenha,
                                  Model model) {
 
-        // 1. Verifica se as senhas coincidem
         if (!usuario.getSenha().equals(confirmarSenha)) {
             model.addAttribute("erro", "As senhas não coincidem!");
             return "usuario/cadastrarUser";
         }
 
-        // 2. Verifica se o CPF já está registrado no MySQL
         if (usuarioRepository.findByCpf(usuario.getCpf()).isPresent()) {
             model.addAttribute("erro", "CPF já cadastrado no sistema!");
             return "usuario/cadastrarUser";
         }
 
-        // 3. LÓGICA DA SENHA: Define TipoUsuario (Instrutor/Funcionário ou Aluno)
         String senhaDigitada = usuario.getSenha();
 
-        // Se a senha começar com "@adm" E o restante tiver pelo menos 6 caracteres (mínimo de 10 no total)
         if (senhaDigitada.startsWith("@adm") && senhaDigitada.length() >= 10) {
-            // Define como FUNCIONARIO / INSTRUTOR
             usuario.setTipoUsuario(TipoUsuario.INSTRUTOR);
         } else {
-            // Padrão geral cai como ALUNO
             usuario.setTipoUsuario(TipoUsuario.ALUNO);
         }
 
-        // 4. Salva no banco de dados MySQL
         usuarioRepository.save(usuario);
 
         return "redirect:/login?sucessoCadastro";
@@ -86,8 +79,8 @@ public class LoginController {
             Usuario usuario = usuarioOpt.get();
             session.setAttribute("usuarioLogado", usuario);
 
-            if (usuario.getTipoUsuario() == TipoUsuario.FUNCIONARIO) {
-                return "admin/testAdm";
+            if (usuario.getTipoUsuario() == TipoUsuario.BIBLIOTECARIO) {
+                return "redirect:/admin/testAdm";
             } else {
                 return "redirect:/usuario/testUser";
             }
@@ -95,6 +88,16 @@ public class LoginController {
 
         model.addAttribute("erro", "CPF ou Senha incorretos!");
         return "login";
+    }
+
+    // ROTA DO USUÁRIO (Adicionada aqui para evitar criar outro arquivo Controller)
+    @GetMapping("/usuario/testUser")
+    public String testUser(HttpSession session) {
+        Usuario logado = (Usuario) session.getAttribute("usuarioLogado");
+        if (logado == null) {
+            return "redirect:/login";
+        }
+        return "usuario/testUser";
     }
 
     // Realiza o logout limpando a sessão
