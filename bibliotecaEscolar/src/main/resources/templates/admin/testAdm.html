@@ -1,11 +1,235 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TestAdm</title>
+    <title>Painel do Bibliotecário / Admin - IGP3</title>
+    <style>
+        :root {
+            --primary: #002b5c; --accent: #ffd166; --bg-color: #f4f6f9;
+            --card-bg: #ffffff; --text-dark: #1e293b; --border: #e2e8f0;
+            --success: #10b981; --danger: #ef4444; --warning: #f59e0b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-dark); padding: 20px; }
+        header { background-color: var(--primary); color: white; padding: 20px 30px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .user-info span { color: var(--accent); font-weight: bold; }
+        .btn-logout { background-color: #dc2626; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 0.9rem; font-weight: 600; }
+        .alerts { margin-bottom: 20px; }
+        .alert { padding: 14px; border-radius: 8px; margin-bottom: 10px; font-weight: 500; }
+        .alert-success { background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+        .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px; }
+        .card { background-color: var(--card-bg); padding: 24px; border-radius: 12px; border: 1px solid var(--border); }
+        .card.full-width { grid-column: span 2; }
+        .card h2 { font-size: 1.25rem; color: var(--primary); margin-bottom: 18px; border-bottom: 2px solid var(--border); padding-bottom: 8px; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; }
+        .form-group label { font-size: 0.9rem; font-weight: 600; color: #475569; }
+        .form-group input, .form-group select { padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; outline: none; }
+
+        /* Estilos dos novos filtros */
+        .filter-group { display: flex; gap: 15px; margin-bottom: 15px; }
+        .filter-group input, .filter-group select { flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; outline: none; }
+
+        .btn-primary { background-color: var(--primary); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
+        th { background-color: #f8fafc; color: #475569; }
+        tr:nth-child(even) { background-color: #f8fafc; }
+    </style>
 </head>
 <body>
-<h1>FUNCIONOU ADM</h1>
+
+<header>
+    <div><h1>Painel da Biblioteca - IGP3</h1></div>
+    <a th:href="@{/logout}" class="btn-logout">Sair do Sistema</a>
+</header>
+
+<div class="alerts">
+    <div th:if="${param.sucessoLivro}" class="alert alert-success">Livro cadastrado com sucesso! Agora adicione exemplares para ele aparecer no acervo.</div>
+    <div th:if="${param.sucessoExemplar}" class="alert alert-success">Exemplar(es) cadastrado(s) com sucesso!</div>
+</div>
+
+<div class="grid-container">
+    <!-- Cadastro de Livro -->
+    <div class="card">
+        <h2>Cadastrar Novo Livro</h2>
+        <form th:action="@{/admin/cadastrar-livro}" method="post">
+            <input type="hidden" name="isbn" th:value="${#dates.createNow().getTime()}" />
+            <div class="form-group">
+                <label>Título</label>
+                <input type="text" name="titulo" required />
+            </div>
+            <div class="form-group">
+                <label>URL da Imagem da Capa (Opcional)</label>
+                <input type="url" name="urlImagem" placeholder="Ex: https://site.com/imagem-capa.jpg" />
+            </div>
+            <div class="form-group">
+                <label>Categoria</label>
+                <input type="text" name="categoria" placeholder="Ex: Ficção, História..." required />
+            </div>
+            <div class="form-group">
+                <label>Editora</label>
+                <input type="text" name="editora" required />
+            </div>
+            <div class="form-group">
+                <label>Ano de Publicação</label>
+                <input type="number" name="anoPublicacao" required />
+            </div>
+            <div class="form-group">
+                <label>Categoria / Restrição</label>
+                <select name="categoriaRestricao">
+                    <option value="PADRAO">PADRÃO</option>
+                    <option value="RESTRITO">RESTRITO</option>
+                </select>
+            </div>
+            <button type="submit" class="btn-primary">Cadastrar Livro</button>
+        </form>
+    </div>
+
+    <!-- Cadastro de Exemplar -->
+    <div class="card">
+        <h2>Cadastrar Exemplares</h2>
+        <form th:action="@{/admin/cadastrar-exemplar}" method="post">
+            <div class="form-group">
+                <label>Selecione o Livro</label>
+                <select name="isbn" required>
+                    <option th:each="l : ${livros}" th:value="${l.isbn}" th:text="${l.titulo}"></option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Quantidade</label>
+                <input type="number" name="quantidade" value="1" min="1" required />
+            </div>
+            <div class="form-group">
+                <label>Estado de Conservação</label>
+                <select name="estado">
+                    <option value="NOVO">Novo</option>
+                    <option value="BOM">Bom</option>
+                    <option value="DESGASTADO">Desgastado</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select name="statusDisponibilidade">
+                    <option value="DISPONIVEL">Disponível</option>
+                    <option value="INDISPONIVEL">Indisponível</option>
+                </select>
+            </div>
+            <button type="submit" class="btn-primary">Cadastrar Exemplares</button>
+        </form>
+    </div>
+
+    <!-- NOVO: Gerenciamento de Usuários -->
+    <div class="card full-width">
+        <h2>Gerenciamento de Usuários</h2>
+        <div class="filter-group">
+            <input type="text" id="buscaUsuario" onkeyup="filtrarUsuarios()" placeholder="Pesquisar por Nome ou CPF...">
+            <select id="filtroTipoUsuario" onchange="filtrarUsuarios()">
+                <option value="TODOS">Todos os Tipos</option>
+                <option value="ALUNO">Aluno</option>
+                <option value="INSTRUTOR">Instrutor</option>
+                <option value="BIBLIOTECARIO">Bibliotecário</option>
+            </select>
+        </div>
+        <table id="tabelaUsuarios">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>CPF</th>
+                <th>Tipo</th>
+                <th>Status Penalidade</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="u : ${usuarios}">
+                <td th:text="${u.id}"></td>
+                <td class="u-nome" th:text="${u.nome}"></td>
+                <td class="u-cpf" th:text="${u.cpf}"></td>
+                <td class="u-tipo" th:text="${u.tipoUsuario}"></td>
+                <td th:text="${u.statusPenalidade}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- NOVO: Gerenciamento de Livros -->
+    <div class="card full-width">
+        <h2>Gerenciamento de Livros e Acervo</h2>
+        <div class="filter-group">
+            <input type="text" id="buscaLivro" onkeyup="filtrarLivros()" placeholder="Pesquisar por Título do Livro...">
+            <input type="text" id="filtroCategoria" onkeyup="filtrarLivros()" placeholder="Filtrar por Categoria (Ex: Ficção)...">
+        </div>
+        <table id="tabelaLivros">
+            <thead>
+            <tr>
+                <th>ISBN</th>
+                <th>Título</th>
+                <th>Categoria</th>
+                <th>Editora</th>
+                <th>Restrição</th>
+                <th>Qtd Exemplares</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="l : ${livros}">
+                <td th:text="${l.isbn}"></td>
+                <td class="l-titulo" th:text="${l.titulo}"></td>
+                <td class="l-categoria" th:text="${l.categoria}"></td>
+                <td th:text="${l.editora}"></td>
+                <td th:text="${l.categoriaRestricao}"></td>
+                <!-- Conta quantos exemplares estão associados a este livro -->
+                <td><strong style="color: #002b5c;" th:text="${#lists.size(l.exemplares)}">0</strong></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Função para filtrar a Tabela de Usuários
+    function filtrarUsuarios() {
+        const inputBusca = document.getElementById("buscaUsuario").value.toLowerCase();
+        const filtroTipo = document.getElementById("filtroTipoUsuario").value;
+        const linhas = document.querySelectorAll("#tabelaUsuarios tbody tr");
+
+        linhas.forEach(linha => {
+            const nome = linha.querySelector(".u-nome").innerText.toLowerCase();
+            const cpf = linha.querySelector(".u-cpf").innerText.toLowerCase();
+            const tipo = linha.querySelector(".u-tipo").innerText;
+
+            const bateBusca = nome.includes(inputBusca) || cpf.includes(inputBusca);
+            const bateTipo = (filtroTipo === "TODOS" || tipo === filtroTipo);
+
+            if (bateBusca && bateTipo) {
+                linha.style.display = "";
+            } else {
+                linha.style.display = "none";
+            }
+        });
+    }
+
+    // Função para filtrar a Tabela de Livros
+    function filtrarLivros() {
+        const inputBusca = document.getElementById("buscaLivro").value.toLowerCase();
+        const inputCategoria = document.getElementById("filtroCategoria").value.toLowerCase();
+        const linhas = document.querySelectorAll("#tabelaLivros tbody tr");
+
+        linhas.forEach(linha => {
+            const titulo = linha.querySelector(".l-titulo").innerText.toLowerCase();
+            const categoria = linha.querySelector(".l-categoria").innerText.toLowerCase();
+
+            const bateBusca = titulo.includes(inputBusca);
+            const bateCat = categoria.includes(inputCategoria);
+
+            if (bateBusca && bateCat) {
+                linha.style.display = "";
+            } else {
+                linha.style.display = "none";
+            }
+        });
+    }
+</script>
+
 </body>
 </html>

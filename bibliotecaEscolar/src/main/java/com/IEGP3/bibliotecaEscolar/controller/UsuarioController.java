@@ -1,6 +1,5 @@
 package com.IEGP3.bibliotecaEscolar.controller;
 
-import com.IEGP3.bibliotecaEscolar.model.TipoUsuario;
 import com.IEGP3.bibliotecaEscolar.model.Usuario;
 import com.IEGP3.bibliotecaEscolar.repository.UsuarioRepository;
 import jakarta.annotation.Nonnull;
@@ -10,7 +9,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @Controller
 @RequestMapping("/admin/usuarios")
@@ -19,15 +17,15 @@ public class UsuarioController {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
-    // 1. Listar todos os usuários (Para o Painel do Administrador)
+    // 1. Listar todos os usuários (Painel Administrativo)
     @GetMapping
     public String listarUsuarios(Model model) {
         List<Usuario> usuarios = usuarioRepository.findAll();
         model.addAttribute("usuarios", usuarios);
-        return "admin/listar-usuarios"; // Renderiza a lista de usuários no painel admin
+        return "admin/listar-usuarios";
     }
 
-    // 2. Abrir o formulário para criar um novo usuário (Balcão do Admin)
+    // 2. Abrir o formulário de cadastro de novo usuário
     @GetMapping("/novo")
     public String formularioNovoUsuario(@Nonnull Model model) {
         model.addAttribute("usuario", new Usuario());
@@ -40,23 +38,35 @@ public class UsuarioController {
                                 @RequestParam(value = "confirmarSenha", required = false) String confirmarSenha,
                                 Model model) {
 
-        // Se for um novo cadastro (sem ID), valida se as senhas batem
+        // 1. Limpa o CPF mantendo APENAS números
+        if (usuario.getCpf() != null) {
+            String cpfLimpo = usuario.getCpf().replaceAll("[^0-9]", "");
+            usuario.setCpf(cpfLimpo);
+        }
+
+        // 2. Validação ESTRITA: Exige exatamente 11 dígitos
+        if (usuario.getCpf() == null || usuario.getCpf().length() != 11) {
+            model.addAttribute("erro", "O CPF é obrigatório e deve conter exatamente 11 dígitos numéricos!");
+            return "admin/cadastrar-usuario";
+        }
+
+        // 3. Se for novo cadastro, valida se as senhas batem
         if (usuario.getId() == null && confirmarSenha != null && !usuario.getSenha().equals(confirmarSenha)) {
             model.addAttribute("erro", "As senhas não coincidem!");
             return "admin/cadastrar-usuario";
         }
 
-        // Se for um novo cadastro, verifica se o CPF já está registrado
+        // 4. Se for novo cadastro, verifica se o CPF já está em uso
         if (usuario.getId() == null && usuarioRepository.findByCpf(usuario.getCpf()).isPresent()) {
             model.addAttribute("erro", "CPF já cadastrado no sistema!");
             return "admin/cadastrar-usuario";
         }
 
-        // Salva ou atualiza no banco de dados MySQL
+        // Persiste no banco de dados MySQL
         usuarioRepository.save(usuario);
 
         model.addAttribute("sucesso", "Usuário salvo com sucesso!");
-        return "redirect:/admin/usuarios"; // Redireciona para a lista para atualizar a tela
+        return "redirect:/admin/usuarios";
     }
 
     // 4. Deletar um usuário pelo ID

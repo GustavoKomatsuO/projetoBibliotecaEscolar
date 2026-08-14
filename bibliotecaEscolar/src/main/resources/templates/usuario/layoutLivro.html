@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes do Livro - IGP3</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f9; padding: 40px 20px; display: flex; justify-content: center; }
+        .details-card { background: white; border-radius: 16px; width: 100%; max-width: 700px; padding: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); display: flex; gap: 30px; }
+        .book-cover { width: 200px; height: 280px; object-fit: cover; border-radius: 12px; }
+        .book-info { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        .status-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85rem; }
+        .status-disponivel { background: #d1fae5; color: #065f46; }
+        .status-indisponivel { background: #fee2e2; color: #991b1b; }
+        .status-aguardando { background: #fef3c7; color: #92400e; }
+        .btn-action { background: #002b5c; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="details-card">
+    <img th:src="${livro.urlImagem != null and !livro.urlImagem.isEmpty() ? livro.urlImagem : 'https://via.placeholder.com/200x280?text=Capa'}" class="book-cover" alt="Capa do Livro" />
+
+    <div class="book-info">
+        <div>
+            <h1 th:text="${livro.titulo}">Título do Livro</h1>
+            <p><strong>Editora:</strong> <span th:text="${livro.editora}"></span></p>
+            <p><strong>Ano:</strong> <span th:text="${livro.anoPublicacao}"></span></p>
+            <p><strong>Categoria:</strong> <span th:text="${livro.categoria}"></span></p>
+            <p><strong>ISBN:</strong> <span th:text="${livro.isbn}"></span></p>
+            <br>
+            <p><strong>Status de Disponibilidade:</strong>
+                <span th:if="${status == 'DISPONIVEL'}" class="status-badge status-disponivel">Disponível para Empréstimo</span>
+                <span th:if="${status == 'INDISPONIVEL'}" class="status-badge status-indisponivel">Indisponível</span>
+                <span th:if="${status == 'AGUARDANDO_RETIRADA'}" class="status-badge status-aguardando">Reservado / Aguardando Retirada</span>
+            </p>
+        </div>
+
+        <div>
+            <a th:if="${status == 'DISPONIVEL'}" th:href="@{'/usuario/emprestimo/' + ${livro.isbn}}" class="btn-action">Solicitar Empréstimo</a>
+            <a th:if="${status != 'DISPONIVEL'}" th:href="@{'/usuario/emprestimo/' + ${livro.isbn}}" class="btn-action" style="background: #f59e0b;">Fazer Reserva</a>
+            <a th:href="@{/usuario/testUser}" style="display: block; margin-top: 10px; text-align: center; color: #64748b;">Voltar ao Acervo</a>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

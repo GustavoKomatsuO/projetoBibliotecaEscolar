@@ -4,107 +4,76 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Acervo Bibliográfico - IGP3</title>
-    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:href="@{/usuarioStyle.css}">
+    <style>
+        .book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; padding: 20px 0; }
+        .book-card { background: white; border-radius: 12px; padding: 15px; border: 1px solid #e2e8f0; text-align: center; cursor: pointer; transition: transform 0.2s; }
+        .book-card:hover { transform: translateY(-4px); }
+        .book-card img { width: 100%; height: 220px; object-fit: cover; border-radius: 8px; }
+        .book-card h3 { font-size: 1.1rem; margin: 10px 0 5px; color: #002b5c; }
+        .tag { background: #e2e8f0; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; }
+    </style>
 </head>
 <body>
 
 <header class="header-content">
     <span class="header-badge">Biblioteca Digital</span>
     <h1>IGP3 - Acervo Bibliográfico</h1>
-    <p>Consulte os materiais didáticos, literários e de pesquisa disponíveis.</p>
 </header>
 
 <main class="library-container">
-
-    <section class="search-section" aria-label="Busca no acervo">
-        <input type="text" id="searchInput" placeholder="Pesquisar por título do livro ou autor..." />
-        <select id="categoryFilter">
+    <section class="search-section">
+        <input type="text" id="searchInput" placeholder="Pesquisar por título do livro..." onkeyup="filtrarLivros()" />
+        <select id="categoryFilter" onchange="filtrarLivros()">
             <option value="todos">Todas as Categorias</option>
-            <option value="ficcao">Ficção / Literatura</option>
-            <option value="filosofia">Filosofia</option>
-            <option value="politica">Política / História</option>
-            <option value="ciencia">Ciência</option>
-            <option value="psicologia">Psicologia</option>
-            <option value="economia">Economia</option>
-            <option value="manga">Mangá</option>
+            <option value="Ficção / Literatura">Ficção / Literatura</option>
+            <option value="Filosofia">Filosofia</option>
+            <option value="Política / História">Política / História</option>
+            <option value="Ciência">Ciência</option>
+            <option value="Psicologia">Psicologia</option>
+            <option value="Economia">Economia</option>
+            <option value="Mangá">Mangá</option>
         </select>
     </section>
 
-    <section class="user-section" aria-label="Meus empréstimos">
-        <h2>Meus empréstimos</h2>
-        <p class="user-summary" id="userSummary">
-            Usuário atual: <strong th:text="${session.usuarioLogado != null ? session.usuarioLogado.nome : 'Visitante'}">Visitante</strong>
-        </p>
+    <section class="book-grid" id="booksGrid">
+        <!-- O Livro só é gerado aqui se a lista de exemplares NÃO for vazia -->
+        <div class="book-card" th:each="livro : ${livros}"
+             th:if="${not #lists.isEmpty(livro.exemplares)}"
+             th:data-titulo="${livro.titulo}"
+             th:data-categoria="${livro.categoria}"
+             th:onclick="'window.location.href=\'/usuario/livro/' + ${livro.isbn} + '\''">
 
-        <nav class="user-actions">
-            <a th:href="@{/logout}" class="forgot-link" style="color: red;">Sair da Conta</a>
-        </nav>
+            <img th:src="${livro.urlImagem != null and !livro.urlImagem.isEmpty() ? livro.urlImagem : 'https://via.placeholder.com/150x220?text=Capa+do+Livro'}" th:alt="${livro.titulo}" />
 
-        <div class="loans-list" id="loansList"></div>
-    </section>
-
-    <section class="book-grid" id="bookGrid" aria-label="Lista de livros">
-
-        <article class="book-card ficcao" data-categoria="ficcao" data-description="Clássico de Machado de Assis sobre amor, ciúme e memória.">
-            <img src="https://m.media-amazon.com/images/I/416E0ngf0xL._SY445_SX342_ML2_.jpg" alt="Capa Dom Casmurro" />
-            <h3>Dom Casmurro</h3>
-            <p>Machado de Assis</p>
-            <span class="tag">Ficção</span>
-        </article>
-
-        <article class="book-card ficcao" data-categoria="ficcao" data-description="A fábula poética de Saint-Exupéry sobre amizade, simplicidade e imaginação.">
-            <img src="https://m.media-amazon.com/images/I/81QluJ4QXyL._SY425_.jpg" alt="Capa O Pequeno Príncipe" />
-            <h3>O Pequeno Príncipe</h3>
-            <p>Antoine de Saint-Exupéry</p>
-            <span class="tag">Ficção</span>
-        </article>
-
-        <article class="book-card ficcao" data-categoria="ficcao" data-description="Distopia de Orwell sobre vigilância, poder e linguagem.">
-            <img src="https://m.media-amazon.com/images/I/819js3EQwbL._AC_UF1000,1000_QL80_.jpg" alt="Capa 1984" />
-            <h3>1984</h3>
-            <p>George Orwell</p>
-            <span class="tag">Ficção</span>
-        </article>
-
-        <article class="book-card ciencia" data-categoria="ciencia" data-description="Stephen Hawking apresenta os mistérios do universo para leigos.">
-            <img src="https://m.media-amazon.com/images/I/51FBILW8cWS._SY445_SX342_ML2_.jpg" alt="Capa Uma Breve História do Tempo" />
-            <h3>Uma Breve História do Tempo</h3>
-            <p>Stephen Hawking</p>
-            <span class="tag">Ciência</span>
-        </article>
-
-        <article class="book-card manga" data-categoria="manga" data-description="Suspense psicológico em quadrinhos de Naoki Urasawa.">
-            <img src="https://m.media-amazon.com/images/I/51fhvwjCziL._SY445_SX342_ML2_.jpg" alt="Capa Monster Vol. 1" />
-            <h3>Monster</h3>
-            <p>Naoki Urasawa</p>
-            <span class="tag">Mangá</span>
-        </article>
-
+            <h3 th:text="${livro.titulo}">Título do Livro</h3>
+            <p th:text="${livro.editora}">Editora</p>
+            <span class="tag" th:text="${livro.categoria}">Categoria</span>
+        </div>
     </section>
 </main>
 
-<dialog class="modal-overlay" id="bookModal" aria-hidden="true">
-    <div class="modal" role="document">
-        <button type="button" class="modal-close" id="closeModal" aria-label="Fechar">×</button>
-        <div class="modal-grid">
-            <img src="" alt="" id="modalImage" />
-            <div>
-                <h2 id="modalTitle">Título do livro</h2>
-                <header class="modal-meta">
-                    <span id="modalAuthor">Autor</span>
-                    <span class="tag" id="modalCategory">Categoria</span>
-                    <span class="status-pill" id="modalStatus">Disponível</span>
-                </header>
-                <p class="modal-description" id="modalDescription">
-                    Clique em um livro para ver mais detalhes, sinopse e a opção de emprestá-lo.
-                </p>
-                <footer class="modal-actions">
-                    <button type="button" class="btn-borrow" id="modalBorrowButton">Emprestar</button>
-                </footer>
-            </div>
-        </div>
-    </div>
-</dialog>
+<script>
+    function filtrarLivros() {
+        const busca = document.getElementById('searchInput').value.toLowerCase();
+        const categoriaSel = document.getElementById('categoryFilter').value;
+        const cards = document.querySelectorAll('.book-card');
+
+        cards.forEach(card => {
+            const titulo = card.getAttribute('data-titulo').toLowerCase();
+            const categoria = card.getAttribute('data-categoria');
+
+            const bateBusca = titulo.includes(busca);
+            const bateCategoria = (categoriaSel === 'todos' || categoria === categoriaSel);
+
+            if (bateBusca && bateCategoria) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+</script>
 
 </body>
 </html>

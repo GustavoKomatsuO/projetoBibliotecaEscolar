@@ -21,7 +21,7 @@ public class Usuario {
     private String senha;
 
     private String email;
-    private String endereco;
+
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_usuario", nullable = false)
@@ -36,12 +36,11 @@ public class Usuario {
 
     public Usuario() {}
 
-    public Usuario(String nome, String cpf, String senha, String email, String endereco, TipoUsuario tipoUsuario) {
+    public Usuario(String nome, String cpf, String senha, String email, TipoUsuario tipoUsuario) {
         this.nome = nome;
         this.cpf = cpf;
         this.senha = senha;
         this.email = email;
-        this.endereco = endereco;
         this.tipoUsuario = tipoUsuario;
     }
 
@@ -56,8 +55,6 @@ public class Usuario {
     public void setSenha(String senha) { this.senha = senha; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
-    public String getEndereco() { return endereco; }
-    public void setEndereco(String endereco) { this.endereco = endereco; }
     public TipoUsuario getTipoUsuario() { return tipoUsuario; }
     public void setTipoUsuario(TipoUsuario tipoUsuario) { this.tipoUsuario = tipoUsuario; }
     public StatusPenalidade getStatusPenalidade() { return statusPenalidade; }

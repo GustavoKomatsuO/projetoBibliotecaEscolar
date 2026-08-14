@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Realizar Empréstimo / Reserva - IGP3</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f9; padding: 40px 20px; display: flex; justify-content: center; }
+        .box { background: white; padding: 30px; border-radius: 12px; width: 100%; max-width: 500px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .rule-box { background: #fffbebfb; border-left: 4px solid #f59e0b; padding: 12px; font-size: 0.85rem; margin: 15px 0; }
+        .btn-submit { background: #002b5c; color: white; width: 100%; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2>Confirmar Empréstimo / Reserva</h2>
+    <p>Livro: <strong th:text="${livro.titulo}"></strong></p>
+
+    <form th:action="@{/usuario/efetuar-emprestimo}" method="post">
+        <input type="hidden" name="isbn" th:value="${livro.isbn}" />
+
+        <p><strong>Data do Empréstimo:</strong> <span th:text="${dataHoje}"></span></p>
+        <p><strong>Data de Devolução Prevista:</strong> <span th:text="${dataEstimada}"></span></p>
+
+        <div class="rule-box">
+            <strong>Aviso de Penalidade por Atraso:</strong><br>
+            Em caso de atraso na devolução, será cobrada uma multa diária com <strong>juros compostos de 5% ao dia</strong> calculados sobre a taxa base de R$ 2,00.
+        </div>
+
+        <button type="submit" class="btn-submit">Confirmar Empréstimo</button>
+    </form>
+</div>
+
+</body>
+</html>
