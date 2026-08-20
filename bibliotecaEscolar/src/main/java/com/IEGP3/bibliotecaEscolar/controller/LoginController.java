@@ -10,11 +10,16 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -376,7 +381,7 @@ public class LoginController {
     }
 
     // ==========================================
-    // ROTA MEUS EMPRÉSTIMOS E CANCELAMENTOS
+    // ROTA MEUS EMPRÉSTIMOS, HISTÓRICO E CANCELAMENTOS
     // ==========================================
 
     @GetMapping("/usuario/emprestimos")
@@ -384,19 +389,55 @@ public class LoginController {
         Usuario logado = obterOuInjetarUsuarioDev(session);
         if (logado == null) return "redirect:/login";
 
-        List<Emprestimo> meusEmprestimos = emprestimoRepository.findAll().stream()
+        List<Emprestimo> emprestimos = emprestimoRepository.findAll().stream()
                 .filter(e -> e.getUsuario().getId().equals(logado.getId()))
                 .collect(Collectors.toList());
 
-        List<Reserva> minhasReservas = reservaRepository.findAll().stream()
+        List<Reserva> reservas = reservaRepository.findAll().stream()
                 .filter(r -> r.getUsuario().getId().equals(logado.getId()))
                 .collect(Collectors.toList());
 
-        model.addAttribute("emprestimos", meusEmprestimos);
-        model.addAttribute("reservas", minhasReservas);
-        model.addAttribute("usuarioNome", logado.getNome());
+        // Calcula a posição na fila de espera para cada reserva pendente
+        Map<Long, Integer> posicoesFila = new HashMap<>();
+        List<Reserva> todasReservas = reservaRepository.findAll();
 
+        for (Reserva r : reservas) {
+            if ("PENDENTE".equals(r.getStatus())) {
+                List<Reserva> filaLivro = todasReservas.stream()
+                        .filter(res -> res.getLivro().getIsbn().equals(r.getLivro().getIsbn()) && "PENDENTE".equals(res.getStatus()))
+                        .sorted(Comparator.comparing(Reserva::getDataReserva).thenComparing(Reserva::getIdReserva))
+                        .collect(Collectors.toList());
+
+                int index = 1;
+                for (Reserva resFila : filaLivro) {
+                    if (resFila.getIdReserva().equals(r.getIdReserva())) {
+                        posicoesFila.put(r.getIdReserva(), index);
+                        break;
+                    }
+                    index++;
+                }
+            }
+        }
+
+        model.addAttribute("emprestimos", emprestimos);
+        model.addAttribute("reservas", reservas);
+        model.addAttribute("posicoesFila", posicoesFila);
+        model.addAttribute("usuarioNome", logado.getNome());
         return "usuario/meusEmprestimos";
+    }
+
+    @GetMapping("/usuario/historico")
+    public String historicoLeitura(HttpSession session, Model model) {
+        Usuario logado = obterOuInjetarUsuarioDev(session);
+        if (logado == null) return "redirect:/login";
+
+        List<Emprestimo> historico = emprestimoRepository.findAll().stream()
+                .filter(e -> e.getUsuario().getId().equals(logado.getId()) && e.getStatus() == StatusEmprestimo.DEVOLVIDO)
+                .collect(Collectors.toList());
+
+        model.addAttribute("historicoEmprestimos", historico);
+        model.addAttribute("usuarioNome", logado.getNome());
+        return "usuario/historico";
     }
 
     @PostMapping("/usuario/emprestimo/cancelar")
@@ -434,5 +475,65 @@ public class LoginController {
             }
         }
         return "redirect:/usuario/emprestimos";
+    }
+
+    // ==========================================
+    // ENDPOINT DE AJAX POLLING PARA NOTIFICAÇÕES (USUÁRIO)
+    // ==========================================
+
+    @GetMapping("/usuario/api/notificacoes")
+    @ResponseBody
+    public Map<String, Object> checkUserNotifications(HttpSession session) {
+        Usuario logado = obterOuInjetarUsuarioDev(session);
+        Map<String, Object> result = new HashMap<>();
+        if (logado == null) return result;
+
+        List<Emprestimo> emprestimos = emprestimoRepository.findAll().stream()
+                .filter(e -> e.getUsuario().getId().equals(logado.getId()) && e.getStatus() != null)
+                .collect(Collectors.toList());
+
+        @SuppressWarnings("unchecked")
+        Map<Long, String> estadoAnterior = (Map<Long, String>) session.getAttribute("estadoEmprestimos");
+
+        if (estadoAnterior == null) {
+            estadoAnterior = new HashMap<>();
+            for (Emprestimo e : emprestimos) {
+                estadoAnterior.put(e.getIdEmprestimo(), e.getStatus().name());
+            }
+            session.setAttribute("estadoEmprestimos", estadoAnterior);
+            result.put("changed", false);
+            return result;
+        }
+
+        List<String> mensagens = new ArrayList<>();
+        Map<Long, String> estadoAtual = new HashMap<>();
+        boolean changed = false;
+
+        for (Emprestimo e : emprestimos) {
+            String statusAtual = e.getStatus().name();
+            estadoAtual.put(e.getIdEmprestimo(), statusAtual);
+
+            if (estadoAnterior.containsKey(e.getIdEmprestimo())) {
+                String statusAntigo = estadoAnterior.get(e.getIdEmprestimo());
+
+                if ("AGUARDANDO_RETIRADA".equals(statusAntigo) && "EM_ANDAMENTO".equals(statusAtual)) {
+                    mensagens.add("Sua requisição de empréstimo do livro '" + e.getExemplar().getLivro().getTitulo() + "' foi aceita!");
+                    changed = true;
+                } else if ("AGUARDANDO_DEVOLUCAO".equals(statusAntigo) && "DEVOLVIDO".equals(statusAtual)) {
+                    mensagens.add("Sua devolução do livro '" + e.getExemplar().getLivro().getTitulo() + "' foi confirmada e processada!");
+                    changed = true;
+                } else if (!statusAntigo.equals(statusAtual)) {
+                    changed = true;
+                }
+            } else {
+                changed = true;
+            }
+        }
+
+        session.setAttribute("estadoEmprestimos", estadoAtual);
+        result.put("mensagens", mensagens);
+        result.put("changed", changed);
+
+        return result;
     }
 }

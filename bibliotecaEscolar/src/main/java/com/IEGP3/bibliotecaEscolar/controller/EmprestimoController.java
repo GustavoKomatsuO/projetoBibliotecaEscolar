@@ -173,7 +173,7 @@ public class EmprestimoController {
 
         List<Reserva> filaReservas = reservaRepository.findAll().stream()
                 .filter(r -> r.getLivro().getIsbn().equals(exemplar.getLivro().getIsbn()) && "PENDENTE".equals(r.getStatus()))
-                .sorted(Comparator.comparing(Reserva::getDataReserva))
+                .sorted(Comparator.comparing(Reserva::getDataReserva).thenComparing(Reserva::getIdReserva))
                 .collect(Collectors.toList());
 
         if (!filaReservas.isEmpty()) {
@@ -192,8 +192,7 @@ public class EmprestimoController {
         return "redirect:/admin/testAdm";
     }
 
-    // AÇÃO CORRIGIDA: Usuário solicita a devolução
-    @PostMapping("/usuario/solicitar-devolucao")
+    @PostMapping("/solicitar-devolucao")
     public String solicitarDevolucaoUsuario(@RequestParam("idEmprestimo") Long idEmprestimo, RedirectAttributes redirectAttributes) {
         Optional<Emprestimo> emprestimoOpt = emprestimoRepository.findById(idEmprestimo);
         if (emprestimoOpt.isPresent()) {

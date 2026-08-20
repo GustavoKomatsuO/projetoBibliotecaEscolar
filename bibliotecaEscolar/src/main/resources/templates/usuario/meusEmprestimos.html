@@ -20,6 +20,12 @@
         .sidebar-item svg { width: 24px; height: 24px; fill: currentColor; }
         .sidebar-item:hover, .sidebar-item.active { background-color: #002b5c; color: #ffd166; }
 
+        .sidebar-logout { margin-top: auto; margin-bottom: 25px; background-color: #dc2626 !important; color: white !important; }
+        .sidebar-logout:hover { background-color: #b91c1c !important; }
+
+        .sidebar-item::after { content: attr(data-tooltip); position: absolute; left: 80px; background-color: #1e293b; color: white; padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; white-space: nowrap; opacity: 0; visibility: hidden; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.15); z-index: 1100; pointer-events: none; }
+        .sidebar-item:hover::after { opacity: 1; visibility: visible; }
+
         .container { margin-left: 75px; padding: 30px; flex: 1; width: calc(100% - 75px); }
 
         h2 { color: #002b5c; margin-bottom: 20px; font-size: 1.6rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;}
@@ -38,10 +44,16 @@
         .btn-acervo { display: inline-block; background: #002b5c; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-bottom: 20px; transition: 0.2s; }
         .btn-acervo:hover { background: #001d3d; }
 
-        .alert { padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; text-align: center; }
+        .alert { padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; text-align: center; transition: opacity 0.5s ease; }
         .alert-success { background-color: #d1fae5; color: #065f46; border: 1px solid #34d399; }
         .alert-danger { background-color: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
         .empty-msg { padding: 20px; color: #64748b; font-style: italic; text-align: center; }
+
+        .badge-posicao { background-color: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 12px; font-weight: bold; font-size: 0.85rem; border: 1px solid #bae6fd; display: inline-block; margin-top: 4px; }
+
+        /* Toast Message de 7 Segundos */
+        #toastContainer { position: fixed; bottom: 30px; right: 30px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; }
+        .toast-msg { background-color: #10b981; color: white; padding: 15px 25px; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: opacity 0.5s ease; opacity: 1; }
     </style>
 </head>
 <body>
@@ -56,21 +68,21 @@
 
 <div class="main-layout">
     <aside class="sidebar">
-        <a th:href="@{/usuario/testUser}" class="sidebar-item" title="Home">
+        <a th:href="@{/usuario/testUser}" class="sidebar-item" data-tooltip="Home">
             <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
         </a>
-        <a th:href="@{/usuario/emprestimos}" class="sidebar-item active" title="Meus Empréstimos">
+        <a th:href="@{/usuario/emprestimos}" class="sidebar-item active" data-tooltip="Meus Empréstimos">
             <svg viewBox="0 0 24 24"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0-2-.9-2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
         </a>
-        <a href="javascript:history.back()" class="sidebar-item" title="Voltar">
-            <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        <a th:href="@{/usuario/historico}" class="sidebar-item" data-tooltip="Histórico">
+            <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6a7 7 0 1 1 7 7 6.97 6.97 0 0 1-5-2.14l-1.42 1.42A8.92 8.92 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
         </a>
-        <a th:href="@{/logout}" class="sidebar-item" style="color: #dc2626;" title="Sair">
-            <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+        <a th:href="@{/logout}" class="sidebar-item sidebar-logout" data-tooltip="Sair">
+            <svg viewBox="0 0 24 24"><path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.1 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
         </a>
     </aside>
 
-    <main class="container">
+    <main class="container" id="conteudoAtualizavel">
 
         <div th:if="${sucesso}" class="alert alert-success" th:text="${sucesso}"></div>
         <div th:if="${erro}" class="alert alert-danger" th:text="${erro}"></div>
@@ -91,27 +103,27 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="emp : ${emprestimos}" th:if="${emp.status.name() == 'EM_ANDAMENTO' || emp.status.name() == 'AGUARDANDO_RETIRADA' || emp.status.name() == 'AGUARDANDO_DEVOLUCAO'}">
+                <tr th:each="emp : ${emprestimos}" th:if="${emp.status != null and (emp.status.name() == 'EM_ANDAMENTO' || emp.status.name() == 'AGUARDANDO_RETIRADA' || emp.status.name() == 'AGUARDANDO_DEVOLUCAO')}">
                     <td th:text="${emp.exemplar.livro.titulo}">Título</td>
                     <td th:text="${emp.dataAlugada}">00/00/0000</td>
                     <td th:text="${emp.dataEstimada}">00/00/0000</td>
                     <td>
-                        <span th:if="${emp.status.name() == 'EM_ANDAMENTO'}" style="color: #065f46; font-weight: bold;">Em Andamento</span>
-                        <span th:if="${emp.status.name() == 'AGUARDANDO_RETIRADA'}" style="color: #b45309; font-weight: bold;">Aguardando Retirada no Balcão</span>
-                        <span th:if="${emp.status.name() == 'AGUARDANDO_DEVOLUCAO'}" style="color: #3b82f6; font-weight: bold;">Aguardando Confirmação de Devolução</span>
+                        <span th:if="${emp.status != null and emp.status.name() == 'EM_ANDAMENTO'}" style="color: #065f46; font-weight: bold;">Em Andamento</span>
+                        <span th:if="${emp.status != null and emp.status.name() == 'AGUARDANDO_RETIRADA'}" style="color: #b45309; font-weight: bold;">Aguardando Retirada no Balcão</span>
+                        <span th:if="${emp.status != null and emp.status.name() == 'AGUARDANDO_DEVOLUCAO'}" style="color: #3b82f6; font-weight: bold;">Aguardando Confirmação de Devolução</span>
                     </td>
                     <td>
-                        <form th:if="${emp.status.name() == 'EM_ANDAMENTO'}" th:action="@{/admin/emprestimos/usuario/solicitar-devolucao}" method="post">
+                        <form th:if="${emp.status != null and emp.status.name() == 'EM_ANDAMENTO'}" th:action="@{/admin/emprestimos/solicitar-devolucao}" method="post">
                             <input type="hidden" name="idEmprestimo" th:value="${emp.idEmprestimo}" />
                             <button type="submit" class="btn-devolver">Solicitar Devolução</button>
                         </form>
-                        <form th:if="${emp.status.name() == 'AGUARDANDO_RETIRADA'}" th:action="@{/usuario/emprestimo/cancelar}" method="post">
+                        <form th:if="${emp.status != null and emp.status.name() == 'AGUARDANDO_RETIRADA'}" th:action="@{/usuario/emprestimo/cancelar}" method="post">
                             <input type="hidden" name="idEmprestimo" th:value="${emp.idEmprestimo}" />
                             <button type="submit" class="btn-cancel">Cancelar Solicitação</button>
                         </form>
                     </td>
                 </tr>
-                <tr th:if="${#lists.isEmpty(emprestimos.?[status.name() == 'EM_ANDAMENTO' || status.name() == 'AGUARDANDO_RETIRADA' || status.name() == 'AGUARDANDO_DEVOLUCAO'])}">
+                <tr th:if="${#lists.isEmpty(emprestimos.?[status != null and (status.name() == 'EM_ANDAMENTO' || status.name() == 'AGUARDANDO_RETIRADA' || status.name() == 'AGUARDANDO_DEVOLUCAO')])}">
                     <td colspan="5" class="empty-msg">Nenhum empréstimo ou solicitação ativa no momento.</td>
                 </tr>
                 </tbody>
@@ -126,7 +138,7 @@
                 <tr>
                     <th>Livro</th>
                     <th>Data Solicitada</th>
-                    <th>Status</th>
+                    <th>Status / Fila</th>
                     <th>Ações</th>
                 </tr>
                 </thead>
@@ -137,6 +149,9 @@
                     <td>
                         <span th:if="${res.status == 'PENDENTE'}" style="color: #b45309; font-weight: bold;">Pendente na Fila</span>
                         <span th:if="${res.status == 'AGUARDANDO_RETIRADA'}" style="color: #065f46; font-weight: bold;">Disponível para Retirada (48h)</span>
+                        <br/>
+                        <span class="badge-posicao" th:if="${res.status == 'PENDENTE' and posicoesFila != null and posicoesFila.containsKey(res.idReserva)}"
+                              th:text="${posicoesFila.get(res.idReserva) + 'º na fila de espera'}">1º na fila</span>
                     </td>
                     <td>
                         <form th:action="@{/usuario/reserva/cancelar}" method="post">
@@ -151,9 +166,55 @@
                 </tbody>
             </table>
         </div>
-
     </main>
 </div>
 
+<div id="toastContainer"></div>
+
+<script>
+    function showToast(message) {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = 'toast-msg';
+        toast.innerText = message;
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 500);
+        }, 7000);
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const alerts = document.querySelectorAll(".alert");
+        alerts.forEach(alert => {
+            setTimeout(() => {
+                alert.style.transition = "opacity 0.5s ease";
+                alert.style.opacity = "0";
+                setTimeout(() => alert.remove(), 500);
+            }, 7000);
+        });
+    });
+
+    setInterval(() => {
+        fetch('/usuario/api/notificacoes')
+            .then(res => res.json())
+            .then(data => {
+                if(data.mensagens && data.mensagens.length > 0) {
+                    data.mensagens.forEach(msg => showToast(msg));
+                }
+
+                if(data.changed) {
+                    fetch(window.location.href)
+                        .then(res => res.text())
+                        .then(html => {
+                            const parser = new DOMParser();
+                            const doc = parser.parseFromString(html, 'text/html');
+                            document.getElementById('conteudoAtualizavel').innerHTML = doc.getElementById('conteudoAtualizavel').innerHTML;
+                        });
+                }
+            });
+    }, 3000);
+</script>
 </body>
 </html>

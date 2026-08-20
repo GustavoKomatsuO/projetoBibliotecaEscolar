@@ -31,7 +31,6 @@ public class Reserva {
         this.usuario = usuario;
         this.livro = livro;
         this.dataReserva = dataReserva;
-
     }
 
     // Getters e Setters

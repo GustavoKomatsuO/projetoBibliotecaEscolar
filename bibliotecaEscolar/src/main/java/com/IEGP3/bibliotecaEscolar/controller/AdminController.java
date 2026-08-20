@@ -3,6 +3,7 @@ package com.IEGP3.bibliotecaEscolar.controller;
 import com.IEGP3.bibliotecaEscolar.model.Exemplar;
 import com.IEGP3.bibliotecaEscolar.model.Emprestimo;
 import com.IEGP3.bibliotecaEscolar.model.Livro;
+import com.IEGP3.bibliotecaEscolar.model.Reserva;
 import com.IEGP3.bibliotecaEscolar.model.EstadoExemplar;
 import com.IEGP3.bibliotecaEscolar.model.StatusDisponibilidade;
 import com.IEGP3.bibliotecaEscolar.model.StatusEmprestimo;
@@ -19,6 +20,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/admin")
@@ -60,6 +66,24 @@ public class AdminController {
         model.addAttribute("reservas", reservaRepository.findAll(Sort.by(Sort.Direction.ASC, "dataReserva")));
 
         return "admin/testAdm";
+    }
+
+    // Ajax Polling para o Admin
+    @GetMapping("/api/check-notificacoes")
+    @ResponseBody
+    public Map<String, Integer> checkNotificacoes() {
+        int aguardando = (int) emprestimoRepository.findAll().stream()
+                .filter(e -> e.getStatus() != null &&
+                        (e.getStatus() == StatusEmprestimo.AGUARDANDO_RETIRADA || e.getStatus() == StatusEmprestimo.AGUARDANDO_DEVOLUCAO))
+                .count();
+
+        int reservasP = (int) reservaRepository.findAll().stream()
+                .filter(r -> "PENDENTE".equals(r.getStatus()))
+                .count();
+
+        Map<String, Integer> map = new HashMap<>();
+        map.put("total", aguardando + reservasP);
+        return map;
     }
 
     @PostMapping("/cadastrar-livro")
@@ -151,7 +175,6 @@ public class AdminController {
         return "redirect:/admin/testAdm?sucessoExclusao=true";
     }
 
-    // NOVO ENDPOINT: Permite modificar o status do empréstimo pelo Gerenciamento
     @PostMapping("/editar-emprestimo")
     public String editarEmprestimo(@RequestParam("idEmprestimo") Long idEmprestimo,
                                    @RequestParam("status") StatusEmprestimo status) {
@@ -167,5 +190,25 @@ public class AdminController {
         emprestimoRepository.save(emprestimo);
 
         return "redirect:/admin/testAdm?sucessoEdicao=true";
+    }
+
+    @PostMapping("/editar-reserva")
+    public String editarReserva(@RequestParam("idReserva") Long idReserva,
+                                @RequestParam("dataReserva") String dataReserva,
+                                @RequestParam("status") String status) {
+        Reserva reserva = reservaRepository.findById(idReserva)
+                .orElseThrow(() -> new RuntimeException("Reserva não encontrada"));
+
+        reserva.setDataReserva(LocalDate.parse(dataReserva));
+        reserva.setStatus(status);
+        reservaRepository.save(reserva);
+
+        return "redirect:/admin/testAdm?sucessoEdicao=true";
+    }
+
+    @GetMapping("/deletar-reserva/{id}")
+    public String deletarReserva(@PathVariable("id") Long id) {
+        reservaRepository.deleteById(id);
+        return "redirect:/admin/testAdm?sucessoExclusao=true";
     }
 }
