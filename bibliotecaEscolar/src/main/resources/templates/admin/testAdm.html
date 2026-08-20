@@ -4,29 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel do Bibliotecário / Admin - IGP3</title>
+    <link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}">
     <style>
         :root {
             --primary: #002b5c; --accent: #ffd166; --bg-color: #f4f6f9;
             --card-bg: #ffffff; --text-dark: #1e293b; --border: #e2e8f0;
             --success: #10b981; --danger: #ef4444; --warning: #f59e0b;
+            --info: #3b82f6;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-dark); padding: 20px; }
-        header { background-color: var(--primary); color: white; padding: 20px 30px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        body { background-color: var(--bg-color); color: var(--text-dark); display: flex; height: 100vh; overflow: hidden; }
+
+        aside { width: 80px; background-color: var(--primary); display: flex; flex-direction: column; align-items: center; padding: 20px 0; gap: 20px; z-index: 10; position: relative; }
+        .nav-icon { width: 50px; height: 50px; background-color: transparent; border: none; border-radius: 12px; color: white; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: background-color 0.2s; position: relative; text-decoration: none; }
+        .nav-icon:hover, .nav-icon.active { background-color: rgba(255, 255, 255, 0.15); color: var(--accent); }
+        .nav-icon svg { width: 24px; height: 24px; fill: currentColor; }
+
+        .sidebar-logout { margin-top: auto; margin-bottom: 10px; background-color: #dc2626 !important; color: white !important; }
+        .sidebar-logout:hover { background-color: #b91c1c !important; }
+
+        .notification-badge { position: absolute; top: 8px; right: 8px; background-color: var(--danger); color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 0.7rem; display: flex; justify-content: center; align-items: center; font-weight: bold; border: 2px solid var(--primary); }
+
+        .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        header { background-color: var(--primary); color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .user-info span { color: var(--accent); font-weight: bold; }
         .btn-logout { background-color: #dc2626; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 0.9rem; font-weight: 600; }
+
+        .content-container { flex: 1; padding: 25px; overflow-y: auto; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
         .alerts { margin-bottom: 20px; }
         .alert { padding: 14px; border-radius: 8px; margin-bottom: 10px; font-weight: 500; }
         .alert-success { background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+
         .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px; }
-        .card { background-color: var(--card-bg); padding: 24px; border-radius: 12px; border: 1px solid var(--border); }
+        .card { background-color: var(--card-bg); padding: 24px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 25px; }
         .card.full-width { grid-column: span 2; }
         .card h2 { font-size: 1.25rem; color: var(--primary); margin-bottom: 18px; border-bottom: 2px solid var(--border); padding-bottom: 8px; }
-        .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; }
-        .form-group label { font-size: 0.9rem; font-weight: 600; color: #475569; }
-        .form-group input, .form-group select { padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; outline: none; }
+        .card h3 { font-size: 1.1rem; color: var(--text-dark); margin: 20px 0 10px 0; }
 
-        /* Estilos dos novos filtros */
+        .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; }
+        .form-group input, .form-group select, .form-group textarea { padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; outline: none; resize: vertical; }
+
         .filter-group { display: flex; gap: 15px; margin-bottom: 15px; }
         .filter-group input, .filter-group select { flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; outline: none; }
 
@@ -35,197 +55,772 @@
         th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
         th { background-color: #f8fafc; color: #475569; }
         tr:nth-child(even) { background-color: #f8fafc; }
+
+        .btn-sm { padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; text-decoration: none; color: white; font-weight: 600; margin-right: 5px; display: inline-block; border: none; cursor: pointer; }
+        .btn-edit { background-color: var(--warning); color: #000; }
+        .btn-delete { background-color: var(--danger); }
+        .btn-info { background-color: var(--info); }
+        .btn-success { background-color: var(--success); }
+        .actions-cell { white-space: nowrap; }
+
+        .btn-ver-mais {
+            background-color: transparent; color: var(--primary); border: 1px solid var(--primary);
+            padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 15px;
+            display: inline-block; transition: all 0.2s ease;
+        }
+        .btn-ver-mais:hover { background-color: var(--primary); color: white; }
+
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); overflow-y: auto;}
+        .modal-content { background-color: var(--card-bg); margin: 5% auto; padding: 25px; border: 1px solid var(--border); width: 50%; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .close-modal { color: #ef4444; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close-modal:hover { color: #dc2626; }
     </style>
 </head>
 <body>
 
-<header>
-    <div><h1>Painel da Biblioteca - IGP3</h1></div>
-    <a th:href="@{/logout}" class="btn-logout">Sair do Sistema</a>
-</header>
+<aside>
+    <button class="nav-icon active" onclick="trocarAba(event, 'aba-dashboard')" title="Dashboard & Notificações">
+        <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        <span class="notification-badge" th:if="${notificacaoAguardando != null and notificacaoAguardando > 0}" th:text="${notificacaoAguardando}">0</span>
+    </button>
+    <button class="nav-icon" onclick="trocarAba(event, 'aba-emprestimos')" title="Empréstimos, Devoluções e Reservas">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m-5 14H7v-2h7v2m3-4H7v-2h10v2m0-4H7V7h10v2Z"/></svg>
+    </button>
+    <button class="nav-icon" onclick="trocarAba(event, 'aba-acervo')" title="Livros e Exemplares">
+        <svg viewBox="0 0 24 24"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2M6 4h5v8l-2.5-1.5L6  12V4Z"/></svg>
+    </button>
+    <button class="nav-icon" onclick="trocarAba(event, 'aba-usuarios')" title="Usuários">
+        <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3m-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3m0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5m8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5Z"/></svg>
+    </button>
 
-<div class="alerts">
-    <div th:if="${param.sucessoLivro}" class="alert alert-success">Livro cadastrado com sucesso! Agora adicione exemplares para ele aparecer no acervo.</div>
-    <div th:if="${param.sucessoExemplar}" class="alert alert-success">Exemplar(es) cadastrado(s) com sucesso!</div>
+    <a th:href="@{/logout}" class="nav-icon sidebar-logout" title="Sair do Sistema">
+        <svg viewBox="0 0 24 24"><path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.1 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
+    </a>
+</aside>
+
+<div class="main-wrapper">
+    <header>
+        <div><h1>Painel da Biblioteca - IGP3</h1></div>
+        <div class="user-info">Bem-vindo(a), <span th:text="${usuario != null ? usuario.nome : 'Administrador'}">Bibliotecário</span>!</div>
+        <a th:href="@{/logout}" class="btn-logout">Sair do Sistema</a>
+    </header>
+
+    <div class="content-container">
+        <div class="alerts">
+            <div th:if="${param.sucessoLivro}" class="alert alert-success">Livro cadastrado com sucesso! Agora adicione exemplares para ele aparecer no acervo.</div>
+            <div th:if="${param.sucessoExemplar}" class="alert alert-success">Exemplar(es) cadastrado(s) com sucesso!</div>
+            <div th:if="${param.sucessoExclusao}" class="alert alert-success">Registro excluído com sucesso!</div>
+            <div th:if="${param.sucessoEdicao}" class="alert alert-success">Registro atualizado com sucesso!</div>
+            <div th:if="${param.sucessoEmprestimo}" class="alert alert-success">Status do empréstimo atualizado com sucesso!</div>
+        </div>
+
+        <!-- ABA 1: DASHBOARD & NOTIFICAÇÕES -->
+        <div id="aba-dashboard" class="tab-content active">
+            <!-- Retiradas Pendentes -->
+            <div class="card full-width" style="border-left: 5px solid var(--accent);">
+                <h2>Notificações de Empréstimos e Solicitações Pendentes (Aguardando Retirada)</h2>
+                <p style="margin-bottom: 15px; color: #64748b;">Solicitações recentes enviadas pelos usuários que aguardam a retirada física no balcão.</p>
+                <table id="tabelaNotificacoes">
+                    <thead>
+                    <tr>
+                        <th>ID Empréstimo</th>
+                        <th>Usuário Solicitante</th>
+                        <th>Livro (Exemplar)</th>
+                        <th>Data da Solicitação</th>
+                        <th>Status Atual</th>
+                        <th>Ações de Balcão</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="emp : ${emprestimos}" th:if="${emp.status.name() == 'AGUARDANDO_RETIRADA'}">
+                        <td th:text="${emp.idEmprestimo}"></td>
+                        <td th:text="${emp.usuario.nome}"></td>
+                        <td th:text="${emp.exemplar.livro.titulo + ' (ID Ex: ' + emp.exemplar.idExemplar + ')'}"></td>
+                        <td th:text="${emp.dataAlugada}"></td>
+                        <td><strong style="color: var(--warning);" th:text="${emp.status}"></strong></td>
+                        <td class="actions-cell">
+                            <form th:action="@{'/admin/emprestimos/confirmar-retirada/' + ${emp.idEmprestimo}}" method="post" style="display:inline;">
+                                <button type="submit" class="btn-sm btn-info" onclick="return confirm('Confirmar entrega física do livro?');">
+                                    Confirmar Retirada
+                                </button>
+                            </form>
+                            <form th:action="@{'/admin/emprestimos/cancelar/' + ${emp.idEmprestimo}}" method="post" style="display:inline;">
+                                <button type="submit" class="btn-sm btn-delete" onclick="return confirm('Rejeitar/cancelar esta solicitação?');">
+                                    Rejeitar
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(emprestimos.?[status.name() == 'AGUARDANDO_RETIRADA'])}">
+                        <td colspan="6" style="text-align: center; color: #64748b;">Nenhuma nova solicitação aguardando retirada.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Devoluções Pendentes -->
+            <div class="card full-width" style="border-left: 5px solid var(--success);">
+                <h2>Notificações de Devolução (Aguardando Aprovação)</h2>
+                <p style="margin-bottom: 15px; color: #64748b;">Devoluções solicitadas pelos usuários aguardando validação no balcão.</p>
+                <table id="tabelaDevolucoes">
+                    <thead>
+                    <tr>
+                        <th>ID Empréstimo</th>
+                        <th>Usuário</th>
+                        <th>Livro (Exemplar)</th>
+                        <th>Data Estimada</th>
+                        <th>Status Atual</th>
+                        <th>Ações</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="emp : ${emprestimos}" th:if="${emp.status.name() == 'AGUARDANDO_DEVOLUCAO'}">
+                        <td th:text="${emp.idEmprestimo}"></td>
+                        <td th:text="${emp.usuario.nome}"></td>
+                        <td th:text="${emp.exemplar.livro.titulo + ' (ID Ex: ' + emp.exemplar.idExemplar + ')'}"></td>
+                        <td th:text="${emp.dataEstimada}"></td>
+                        <td><strong style="color: var(--info);" th:text="${emp.status}"></strong></td>
+                        <td class="actions-cell">
+                            <form th:action="@{'/admin/emprestimos/devolver/' + ${emp.idEmprestimo}}" method="post" style="display:inline;">
+                                <button type="submit" class="btn-sm btn-success" onclick="return confirm('Aprovar a devolução deste exemplar?');">
+                                    Aprovar Devolução
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(emprestimos.?[status.name() == 'AGUARDANDO_DEVOLUCAO'])}">
+                        <td colspan="6" style="text-align: center; color: #64748b;">Nenhuma devolução aguardando aprovação no momento.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ABA 2: EMPRÉSTIMOS, DEVOLUÇÕES E RESERVAS -->
+        <div id="aba-emprestimos" class="tab-content">
+            <!-- Tabela de Reservas Ativas -->
+            <div class="card full-width">
+                <h2>Fila de Reservas Ativas</h2>
+                <table id="tabelaReservas">
+                    <thead>
+                    <tr>
+                        <th>ID Reserva</th>
+                        <th>Usuário</th>
+                        <th>Livro Solicitado</th>
+                        <th>Data da Reserva</th>
+                        <th>Status</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="res : ${reservas}">
+                        <td th:text="${res.idReserva}"></td>
+                        <td th:text="${res.usuario.nome}"></td>
+                        <td th:text="${res.livro.titulo}"></td>
+                        <td th:text="${res.dataReserva}"></td>
+                        <td><strong th:text="${res.status}"></strong></td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(reservas)}">
+                        <td colspan="5" style="text-align: center; color: #64748b;">Nenhuma reserva registrada no momento.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Tabela de Gerenciamento de Empréstimos -->
+            <div class="card full-width">
+                <h2>Gerenciamento de Empréstimos e Devoluções</h2>
+                <div class="filter-group">
+                    <input type="text" id="buscaEmprestimo" onkeyup="filtrarEmprestimos()" placeholder="Pesquisar por Nome do Usuário ou Título...">
+                    <select id="filtroStatusEmprestimo" onchange="filtrarEmprestimos()">
+                        <option value="TODOS">Todos os Status</option>
+                        <option value="AGUARDANDO_RETIRADA">Aguardando Retirada</option>
+                        <option value="EM_ANDAMENTO">Em Andamento</option>
+                        <option value="AGUARDANDO_DEVOLUCAO">Aguardando Devolução</option>
+                        <option value="DEVOLVIDO">Devolvido</option>
+                        <option value="ATRASADO">Atrasado</option>
+                    </select>
+                </div>
+                <table id="tabelaEmprestimos">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Usuário</th>
+                        <th>Livro (Exemplar)</th>
+                        <th>Data Aluguel</th>
+                        <th>Prazo Estimado</th>
+                        <th>Status</th>
+                        <th>Ações de Balcão</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="emp : ${emprestimos}">
+                        <td th:text="${emp.idEmprestimo}"></td>
+                        <td class="emp-user" th:text="${emp.usuario.nome}"></td>
+                        <td class="emp-book" th:text="${emp.exemplar.livro.titulo + ' (ID: ' + emp.exemplar.idExemplar + ')'}"></td>
+                        <td th:text="${emp.dataAlugada}"></td>
+                        <td th:text="${emp.dataEstimada}"></td>
+                        <td class="emp-status" th:text="${emp.status}"></td>
+                        <td class="actions-cell">
+                            <form th:if="${emp.status.name() == 'AGUARDANDO_RETIRADA'}"
+                                  th:action="@{'/admin/emprestimos/confirmar-retirada/' + ${emp.idEmprestimo}}"
+                                  method="post" style="display:inline;">
+                                <button type="submit" class="btn-sm btn-info"
+                                        onclick="return confirm('Confirmar retirada e mudar status para EM_ANDAMENTO?');">
+                                    Confirmar Retirada
+                                </button>
+                            </form>
+
+                            <form th:if="${emp.status.name() == 'EM_ANDAMENTO' or emp.status.name() == 'AGUARDANDO_DEVOLUCAO' or emp.status.name() == 'ATRASADO'}"
+                                  th:action="@{'/admin/emprestimos/devolver/' + ${emp.idEmprestimo}}"
+                                  method="post" style="display:inline;">
+                                <button type="submit" class="btn-sm btn-success"
+                                        onclick="return confirm('Confirmar devolução física do livro?');">
+                                    Aprovar Devolução
+                                </button>
+                            </form>
+
+                            <a href="javascript:void(0);"
+                               th:attr="onclick=|abrirModalEditarEmprestimo('${emp.idEmprestimo}', '${emp.status}')|"
+                               class="btn-sm btn-edit">Modificar</a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <button id="btnVerMaisEmprestimos" class="btn-ver-mais" onclick="toggleVerMais('tabelaEmprestimos', 'btnVerMaisEmprestimos')" style="display:none;">Ver mais</button>
+            </div>
+        </div>
+
+        <!-- ABA 3: LIVROS E EXEMPLARES -->
+        <div id="aba-acervo" class="tab-content">
+            <div class="grid-container">
+                <div class="card" style="margin-bottom:0;">
+                    <h2>Cadastrar Novo Livro</h2>
+                    <form th:action="@{/admin/cadastrar-livro}" method="post">
+                        <input type="hidden" name="isbn" th:value="${#dates.createNow().getTime()}" />
+                        <div class="form-group">
+                            <label>Título</label>
+                            <input type="text" name="titulo" required />
+                        </div>
+                        <div class="form-group">
+                            <label>Autor</label>
+                            <input type="text" name="autor" required />
+                        </div>
+                        <div class="form-group">
+                            <label>URL da Imagem da Capa (Opcional)</label>
+                            <input type="url" name="urlImagem" placeholder="Ex: https://site.com/imagem-capa.jpg" />
+                        </div>
+                        <div class="form-group">
+                            <label>Descrição / Sinopse (Opcional)</label>
+                            <textarea name="sinopse" rows="3" placeholder="Digite o resumo do livro aqui..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Categoria</label>
+                            <input type="text" name="categoria" placeholder="Ex: Ficção, História..." required />
+                        </div>
+                        <div class="form-group">
+                            <label>Editora</label>
+                            <input type="text" name="editora" required />
+                        </div>
+                        <div class="form-group">
+                            <label>Ano de Publicação</label>
+                            <input type="number" name="anoPublicacao" required />
+                        </div>
+                        <div class="form-group">
+                            <label>Categoria / Restrição</label>
+                            <select name="categoriaRestricao">
+                                <option value="PADRAO">PADRÃO</option>
+                                <option value="RESTRITO">RESTRITO</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-primary">Cadastrar Livro</button>
+                    </form>
+                </div>
+
+                <div class="card" style="margin-bottom:0;">
+                    <h2>Cadastrar Exemplares</h2>
+                    <form th:action="@{/admin/cadastrar-exemplar}" method="post">
+                        <div class="form-group">
+                            <label>Selecione o Livro</label>
+                            <select name="isbn" required>
+                                <option th:each="l : ${livros}" th:value="${l.isbn}" th:text="${l.titulo}"></option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Quantidade</label>
+                            <input type="number" name="quantidade" value="1" min="1" required />
+                        </div>
+                        <div class="form-group">
+                            <label>Estado de Conservação</label>
+                            <select name="estado">
+                                <option value="NOVO">Novo</option>
+                                <option value="BOM">Bom</option>
+                                <option value="DESGASTADO">Desgastado</option>
+                                <option value="DANIFICADO">Danificado</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select name="statusDisponibilidade">
+                                <option value="DISPONIVEL">Disponível</option>
+                                <option value="INDISPONIVEL">Indisponível</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-primary">Cadastrar Exemplares</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card full-width" style="margin-top: 25px;">
+                <h2>Gerenciamento de Livros e Acervo</h2>
+                <div class="filter-group">
+                    <input type="text" id="buscaLivro" onkeyup="filtrarLivros()" placeholder="Pesquisar por Título do Livro...">
+                    <input type="text" id="filtroCategoria" onkeyup="filtrarLivros()" placeholder="Filtrar por Categoria (Ex: Ficção)...">
+                </div>
+                <table id="tabelaLivros">
+                    <thead>
+                    <tr>
+                        <th>ISBN</th>
+                        <th>Título</th>
+                        <th>Autor</th>
+                        <th>Categoria</th>
+                        <th>Editora</th>
+                        <th>Restrição</th>
+                        <th>Qtd Exemplares</th>
+                        <th>Ações</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="l : ${livros}">
+                        <td th:text="${l.isbn}"></td>
+                        <td class="l-titulo" th:text="${l.titulo}"></td>
+                        <td th:text="${l.autor}"></td>
+                        <td class="l-categoria" th:text="${l.categoria}"></td>
+                        <td th:text="${l.editora}"></td>
+                        <td th:text="${l.categoriaRestricao}"></td>
+                        <td><strong style="color: #002b5c;" th:text="${#lists.size(l.exemplares)}">0</strong></td>
+                        <td class="actions-cell">
+                            <a href="javascript:void(0);"
+                               th:data-isbn="${l.isbn}"
+                               th:data-titulo="${l.titulo}"
+                               th:data-autor="${l.autor}"
+                               th:data-url="${l.urlImagem}"
+                               th:data-sinopse="${l.sinopse}"
+                               th:data-categoria="${l.categoria}"
+                               th:data-editora="${l.editora}"
+                               th:data-ano="${l.anoPublicacao}"
+                               th:data-restricao="${l.categoriaRestricao}"
+                               onclick="abrirModalLivro(this)"
+                               class="btn-sm btn-edit">Modificar</a>
+                            <a th:href="@{'/admin/deletar-livro/' + ${l.isbn}}" class="btn-sm btn-delete" onclick="return confirm('Tem certeza que deseja excluir este livro e todos os seus exemplares?');">Excluir</a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <button id="btnVerMaisLivros" class="btn-ver-mais" onclick="toggleVerMais('tabelaLivros', 'btnVerMaisLivros')" style="display:none;">Ver mais</button>
+            </div>
+
+            <div class="card full-width">
+                <h2>Gerenciamento de Exemplares Específicos</h2>
+                <div class="filter-group">
+                    <input type="text" id="buscaExemplar" onkeyup="filtrarExemplares()" placeholder="Pesquisar por Título do Livro ou ID do Exemplar...">
+                </div>
+                <table id="tabelaExemplares">
+                    <thead>
+                    <tr>
+                        <th>ID Exemplar</th>
+                        <th>Livro (Título)</th>
+                        <th>Estado</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="e : ${exemplares}">
+                        <td class="e-id" th:text="${e.idExemplar}"></td>
+                        <td class="e-titulo" th:text="${e.livro.titulo}"></td>
+                        <td th:text="${e.estado}"></td>
+                        <td th:text="${e.statusDisponibilidade}"></td>
+                        <td class="actions-cell">
+                            <a href="javascript:void(0);"
+                               th:attr="onclick=|abrirModalExemplar('${e.idExemplar}', '${e.estado}', '${e.statusDisponibilidade}')|"
+                               class="btn-sm btn-edit">Modificar</a>
+                            <a th:href="@{'/admin/deletar-exemplar/' + ${e.idExemplar}}" class="btn-sm btn-delete" onclick="return confirm('Tem certeza que deseja excluir este exemplar?');">Excluir</a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <button id="btnVerMaisExemplares" class="btn-ver-mais" onclick="toggleVerMais('tabelaExemplares', 'btnVerMaisExemplares')" style="display:none;">Ver mais</button>
+            </div>
+        </div>
+
+        <!-- ABA 4: USUÁRIOS -->
+        <div id="aba-usuarios" class="tab-content">
+            <div class="card full-width">
+                <h2>Gerenciamento de Usuários</h2>
+                <div class="filter-group">
+                    <input type="text" id="buscaUsuario" onkeyup="filtrarUsuarios()" placeholder="Pesquisar por Nome ou CPF...">
+                    <select id="filtroTipoUsuario" onchange="filtrarUsuarios()">
+                        <option value="TODOS">Todos os Tipos</option>
+                        <option value="ALUNO">Aluno</option>
+                        <option value="INSTRUTOR">Instrutor</option>
+                        <option value="BIBLIOTECARIO">Bibliotecário</option>
+                    </select>
+                </div>
+                <table id="tabelaUsuarios">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>CPF</th>
+                        <th>Tipo</th>
+                        <th>Status Penalidade</th>
+                        <th>Ações</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="u : ${usuarios}">
+                        <td th:text="${u.id}"></td>
+                        <td class="u-nome" th:text="${u.nome}"></td>
+                        <td class="u-cpf" th:text="${u.cpf}"></td>
+                        <td class="u-tipo" th:text="${u.tipoUsuario}"></td>
+                        <td th:text="${u.statusPenalidade}"></td>
+                        <td class="actions-cell">
+                            <a href="javascript:void(0);"
+                               th:attr="onclick=|abrirModalUsuario('${u.id}', '${u.nome}', '${u.cpf}', '${u.tipoUsuario}', '${u.statusPenalidade}')|"
+                               class="btn-sm btn-edit">Modificar</a>
+                            <a th:href="@{'/admin/deletar-usuario/' + ${u.id}}" class="btn-sm btn-delete" onclick="return confirm('Tem certeza que deseja excluir este usuário?');">Excluir</a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <button id="btnVerMaisUsuarios" class="btn-ver-mais" onclick="toggleVerMais('tabelaUsuarios', 'btnVerMaisUsuarios')" style="display:none;">Ver mais</button>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="grid-container">
-    <!-- Cadastro de Livro -->
-    <div class="card">
-        <h2>Cadastrar Novo Livro</h2>
-        <form th:action="@{/admin/cadastrar-livro}" method="post">
-            <input type="hidden" name="isbn" th:value="${#dates.createNow().getTime()}" />
+<!-- Modais -->
+<div id="modalEditarEmprestimo" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="fecharModalEditarEmprestimo()">&times;</span>
+        <h2>Modificar Status do Empréstimo</h2>
+        <form th:action="@{/admin/editar-emprestimo}" method="post">
+            <input type="hidden" name="idEmprestimo" id="editEmprestimoId" />
+
             <div class="form-group">
-                <label>Título</label>
-                <input type="text" name="titulo" required />
+                <label>Status</label>
+                <select name="status" id="editEmprestimoStatus" required>
+                    <option value="AGUARDANDO_RETIRADA">Aguardando Retirada</option>
+                    <option value="EM_ANDAMENTO">Em Andamento</option>
+                    <option value="AGUARDANDO_DEVOLUCAO">Aguardando Devolução</option>
+                    <option value="DEVOLVIDO">Devolvido</option>
+                    <option value="ATRASADO">Atrasado</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-primary" style="background-color: var(--warning); color: #000;">Salvar Alterações</button>
+        </form>
+    </div>
+</div>
+
+<div id="modalEditarUsuario" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="fecharModalUsuario()">&times;</span>
+        <h2>Modificar Usuário</h2>
+        <form th:action="@{/admin/editar-usuario}" method="post">
+            <input type="hidden" name="id" id="editUsuarioId" />
+            <div class="form-group">
+                <label>Nome</label>
+                <input type="text" name="nome" id="editUsuarioNome" required />
             </div>
             <div class="form-group">
-                <label>URL da Imagem da Capa (Opcional)</label>
-                <input type="url" name="urlImagem" placeholder="Ex: https://site.com/imagem-capa.jpg" />
+                <label>CPF (Apenas números)</label>
+                <input type="text" name="cpf" id="editUsuarioCpf" required maxlength="11" />
+            </div>
+            <div class="form-group">
+                <label>Tipo de Usuário</label>
+                <select name="tipoUsuario" id="editUsuarioTipo">
+                    <option value="ALUNO">ALUNO</option>
+                    <option value="INSTRUTOR">INSTRUTOR</option>
+                    <option value="BIBLIOTECARIO">BIBLIOTECARIO</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Status de Penalidade</label>
+                <select name="statusPenalidade" id="editUsuarioStatus">
+                    <option value="ATIVO">ATIVO</option>
+                    <option value="SUSPENSO">SUSPENSO</option>
+                    <option value="BLOQUEADO">BLOQUEADO</option>
+                </select>
+            </div>
+            <button type="submit" class="btn-primary" style="background-color: var(--warning); color: #000;">Salvar Alterações</button>
+        </form>
+    </div>
+</div>
+
+<div id="modalEditarLivro" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="fecharModalLivro()">&times;</span>
+        <h2>Modificar Livro</h2>
+        <form th:action="@{/admin/editar-livro}" method="post">
+            <input type="hidden" name="isbn" id="editLivroIsbn" />
+            <div class="form-group">
+                <label>Título</label>
+                <input type="text" name="titulo" id="editLivroTitulo" required />
+            </div>
+            <div class="form-group">
+                <label>Autor</label>
+                <input type="text" name="autor" id="editLivroAutor" required />
+            </div>
+            <div class="form-group">
+                <label>Url da Imagem</label>
+                <input type="text" name="urlImagem" id="editLivroUrl" />
+            </div>
+            <div class="form-group">
+                <label>Descrição / Sinopse (Opcional)</label>
+                <textarea name="sinopse" id="editLivroSinopse" rows="4"></textarea>
             </div>
             <div class="form-group">
                 <label>Categoria</label>
-                <input type="text" name="categoria" placeholder="Ex: Ficção, História..." required />
+                <input type="text" name="categoria" id="editLivroCategoria" required />
             </div>
             <div class="form-group">
                 <label>Editora</label>
-                <input type="text" name="editora" required />
+                <input type="text" name="editora" id="editLivroEditora" required />
             </div>
             <div class="form-group">
                 <label>Ano de Publicação</label>
-                <input type="number" name="anoPublicacao" required />
+                <input type="number" name="anoPublicacao" id="editLivroAno" required />
             </div>
             <div class="form-group">
                 <label>Categoria / Restrição</label>
-                <select name="categoriaRestricao">
+                <select name="categoriaRestricao" id="editLivroRestricao">
                     <option value="PADRAO">PADRÃO</option>
                     <option value="RESTRITO">RESTRITO</option>
                 </select>
             </div>
-            <button type="submit" class="btn-primary">Cadastrar Livro</button>
+            <button type="submit" class="btn-primary" style="background-color: var(--warning); color: #000;">Salvar Alterações</button>
         </form>
     </div>
+</div>
 
-    <!-- Cadastro de Exemplar -->
-    <div class="card">
-        <h2>Cadastrar Exemplares</h2>
-        <form th:action="@{/admin/cadastrar-exemplar}" method="post">
-            <div class="form-group">
-                <label>Selecione o Livro</label>
-                <select name="isbn" required>
-                    <option th:each="l : ${livros}" th:value="${l.isbn}" th:text="${l.titulo}"></option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Quantidade</label>
-                <input type="number" name="quantidade" value="1" min="1" required />
-            </div>
+<div id="modalEditarExemplar" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="fecharModalExemplar()">&times;</span>
+        <h2>Modificar Exemplar</h2>
+        <form th:action="@{/admin/editar-exemplar}" method="post">
+            <input type="hidden" name="idExemplar" id="editExemplarId" />
             <div class="form-group">
                 <label>Estado de Conservação</label>
-                <select name="estado">
-                    <option value="NOVO">Novo</option>
-                    <option value="BOM">Bom</option>
-                    <option value="DESGASTADO">Desgastado</option>
+                <select name="estado" id="editExemplarEstado">
+                    <option value="NOVO">NOVO</option>
+                    <option value="BOM">BOM</option>
+                    <option value="DESGASTADO">DESGASTADO</option>
+                    <option value="DANIFICADO">DANIFICADO</option>
                 </select>
             </div>
             <div class="form-group">
-                <label>Status</label>
-                <select name="statusDisponibilidade">
-                    <option value="DISPONIVEL">Disponível</option>
-                    <option value="INDISPONIVEL">Indisponível</option>
+                <label>Status de Disponibilidade</label>
+                <select name="statusDisponibilidade" id="editExemplarStatus">
+                    <option value="DISPONIVEL">DISPONIVEL</option>
+                    <option value="INDISPONIVEL">INDISPONIVEL</option>
                 </select>
             </div>
-            <button type="submit" class="btn-primary">Cadastrar Exemplares</button>
+            <button type="submit" class="btn-primary" style="background-color: var(--warning); color: #000;">Salvar Alterações</button>
         </form>
-    </div>
-
-    <!-- NOVO: Gerenciamento de Usuários -->
-    <div class="card full-width">
-        <h2>Gerenciamento de Usuários</h2>
-        <div class="filter-group">
-            <input type="text" id="buscaUsuario" onkeyup="filtrarUsuarios()" placeholder="Pesquisar por Nome ou CPF...">
-            <select id="filtroTipoUsuario" onchange="filtrarUsuarios()">
-                <option value="TODOS">Todos os Tipos</option>
-                <option value="ALUNO">Aluno</option>
-                <option value="INSTRUTOR">Instrutor</option>
-                <option value="BIBLIOTECARIO">Bibliotecário</option>
-            </select>
-        </div>
-        <table id="tabelaUsuarios">
-            <thead>
-            <tr>
-                <th>ID</th>
-                <th>Nome</th>
-                <th>CPF</th>
-                <th>Tipo</th>
-                <th>Status Penalidade</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="u : ${usuarios}">
-                <td th:text="${u.id}"></td>
-                <td class="u-nome" th:text="${u.nome}"></td>
-                <td class="u-cpf" th:text="${u.cpf}"></td>
-                <td class="u-tipo" th:text="${u.tipoUsuario}"></td>
-                <td th:text="${u.statusPenalidade}"></td>
-            </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- NOVO: Gerenciamento de Livros -->
-    <div class="card full-width">
-        <h2>Gerenciamento de Livros e Acervo</h2>
-        <div class="filter-group">
-            <input type="text" id="buscaLivro" onkeyup="filtrarLivros()" placeholder="Pesquisar por Título do Livro...">
-            <input type="text" id="filtroCategoria" onkeyup="filtrarLivros()" placeholder="Filtrar por Categoria (Ex: Ficção)...">
-        </div>
-        <table id="tabelaLivros">
-            <thead>
-            <tr>
-                <th>ISBN</th>
-                <th>Título</th>
-                <th>Categoria</th>
-                <th>Editora</th>
-                <th>Restrição</th>
-                <th>Qtd Exemplares</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="l : ${livros}">
-                <td th:text="${l.isbn}"></td>
-                <td class="l-titulo" th:text="${l.titulo}"></td>
-                <td class="l-categoria" th:text="${l.categoria}"></td>
-                <td th:text="${l.editora}"></td>
-                <td th:text="${l.categoriaRestricao}"></td>
-                <!-- Conta quantos exemplares estão associados a este livro -->
-                <td><strong style="color: #002b5c;" th:text="${#lists.size(l.exemplares)}">0</strong></td>
-            </tr>
-            </tbody>
-        </table>
     </div>
 </div>
 
 <script>
-    // Função para filtrar a Tabela de Usuários
+    function trocarAba(evt, abaId) {
+        const conteudos = document.querySelectorAll(".tab-content");
+        conteudos.forEach(c => c.classList.remove("active"));
+
+        const icones = document.querySelectorAll(".nav-icon:not(.sidebar-logout)");
+        icones.forEach(i => i.classList.remove("active"));
+
+        document.getElementById(abaId).classList.add("active");
+        if(evt && evt.currentTarget) {
+            evt.currentTarget.classList.add("active");
+        }
+    }
+
+    function aplicarLimiteTabela(tabelaId, btnId) {
+        const tabela = document.getElementById(tabelaId);
+        if(!tabela) return;
+        const linhas = tabela.querySelectorAll("tbody tr");
+        const btn = document.getElementById(btnId);
+        if(!btn) return;
+
+        if (linhas.length > 5) {
+            btn.style.display = "inline-block";
+            btn.setAttribute("data-expanded", "false");
+            btn.innerText = "Ver mais";
+            linhas.forEach((linha, index) => {
+                if (index >= 5) linha.style.display = "none";
+            });
+        } else {
+            btn.style.display = "none";
+        }
+    }
+
+    function toggleVerMais(tabelaId, btnId) {
+        const tabela = document.getElementById(tabelaId);
+        const linhas = tabela.querySelectorAll("tbody tr");
+        const btn = document.getElementById(btnId);
+        const estaExpandido = btn.getAttribute("data-expanded") === "true";
+
+        if (estaExpandido) {
+            linhas.forEach((linha, index) => {
+                if (index >= 5) linha.style.display = "none";
+            });
+            btn.setAttribute("data-expanded", "false");
+            btn.innerText = "Ver mais";
+        } else {
+            linhas.forEach(linha => linha.style.display = "");
+            btn.setAttribute("data-expanded", "true");
+            btn.innerText = "Ver menos";
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        aplicarLimiteTabela('tabelaUsuarios', 'btnVerMaisUsuarios');
+        aplicarLimiteTabela('tabelaEmprestimos', 'btnVerMaisEmprestimos');
+        aplicarLimiteTabela('tabelaLivros', 'btnVerMaisLivros');
+        aplicarLimiteTabela('tabelaExemplares', 'btnVerMaisExemplares');
+    });
+
+    function filtrarEmprestimos() {
+        const inputBusca = document.getElementById("buscaEmprestimo").value.toLowerCase();
+        const filtroStatus = document.getElementById("filtroStatusEmprestimo").value;
+        const linhas = document.querySelectorAll("#tabelaEmprestimos tbody tr");
+        const btn = document.getElementById("btnVerMaisEmprestimos");
+
+        if(inputBusca !== "" || filtroStatus !== "TODOS") {
+            if(btn) btn.style.display = "none";
+            linhas.forEach(linha => {
+                const user = linha.querySelector(".emp-user").innerText.toLowerCase();
+                const book = linha.querySelector(".emp-book").innerText.toLowerCase();
+                const status = linha.querySelector(".emp-status").innerText;
+                const bateBusca = user.includes(inputBusca) || book.includes(inputBusca);
+                const bateStatus = (filtroStatus === "TODOS" || status === filtroStatus);
+                linha.style.display = (bateBusca && bateStatus) ? "" : "none";
+            });
+        } else {
+            aplicarLimiteTabela('tabelaEmprestimos', 'btnVerMaisEmprestimos');
+        }
+    }
+
+    function abrirModalEditarEmprestimo(id, status) {
+        document.getElementById('editEmprestimoId').value = id;
+        document.getElementById('editEmprestimoStatus').value = status;
+        document.getElementById('modalEditarEmprestimo').style.display = 'block';
+    }
+    function fecharModalEditarEmprestimo() {
+        document.getElementById('modalEditarEmprestimo').style.display = 'none';
+    }
+
     function filtrarUsuarios() {
         const inputBusca = document.getElementById("buscaUsuario").value.toLowerCase();
         const filtroTipo = document.getElementById("filtroTipoUsuario").value;
         const linhas = document.querySelectorAll("#tabelaUsuarios tbody tr");
+        const btn = document.getElementById("btnVerMaisUsuarios");
 
-        linhas.forEach(linha => {
-            const nome = linha.querySelector(".u-nome").innerText.toLowerCase();
-            const cpf = linha.querySelector(".u-cpf").innerText.toLowerCase();
-            const tipo = linha.querySelector(".u-tipo").innerText;
-
-            const bateBusca = nome.includes(inputBusca) || cpf.includes(inputBusca);
-            const bateTipo = (filtroTipo === "TODOS" || tipo === filtroTipo);
-
-            if (bateBusca && bateTipo) {
-                linha.style.display = "";
-            } else {
-                linha.style.display = "none";
-            }
-        });
+        if(inputBusca !== "" || filtroTipo !== "TODOS") {
+            if(btn) btn.style.display = "none";
+            linhas.forEach(linha => {
+                const nome = linha.querySelector(".u-nome").innerText.toLowerCase();
+                const cpf = linha.querySelector(".u-cpf").innerText.toLowerCase();
+                const tipo = linha.querySelector(".u-tipo").innerText;
+                const bateBusca = nome.includes(inputBusca) || cpf.includes(inputBusca);
+                const bateTipo = (filtroTipo === "TODOS" || tipo === filtroTipo);
+                linha.style.display = (bateBusca && bateTipo) ? "" : "none";
+            });
+        } else {
+            aplicarLimiteTabela('tabelaUsuarios', 'btnVerMaisUsuarios');
+        }
     }
 
-    // Função para filtrar a Tabela de Livros
     function filtrarLivros() {
         const inputBusca = document.getElementById("buscaLivro").value.toLowerCase();
         const inputCategoria = document.getElementById("filtroCategoria").value.toLowerCase();
         const linhas = document.querySelectorAll("#tabelaLivros tbody tr");
+        const btn = document.getElementById("btnVerMaisLivros");
 
-        linhas.forEach(linha => {
-            const titulo = linha.querySelector(".l-titulo").innerText.toLowerCase();
-            const categoria = linha.querySelector(".l-categoria").innerText.toLowerCase();
+        if(inputBusca !== "" || inputCategoria !== "") {
+            if(btn) btn.style.display = "none";
+            linhas.forEach(linha => {
+                const titulo = linha.querySelector(".l-titulo").innerText.toLowerCase();
+                const categoria = linha.querySelector(".l-categoria").innerText.toLowerCase();
+                const bateBusca = titulo.includes(inputBusca);
+                const bateCat = categoria.includes(inputCategoria);
+                linha.style.display = (bateBusca && bateCat) ? "" : "none";
+            });
+        } else {
+            aplicarLimiteTabela('tabelaLivros', 'btnVerMaisLivros');
+        }
+    }
 
-            const bateBusca = titulo.includes(inputBusca);
-            const bateCat = categoria.includes(inputCategoria);
+    function filtrarExemplares() {
+        const inputBusca = document.getElementById("buscaExemplar").value.toLowerCase();
+        const linhas = document.querySelectorAll("#tabelaExemplares tbody tr");
+        const btn = document.getElementById("btnVerMaisExemplares");
 
-            if (bateBusca && bateCat) {
-                linha.style.display = "";
-            } else {
-                linha.style.display = "none";
+        if(inputBusca !== "") {
+            if(btn) btn.style.display = "none";
+            linhas.forEach(linha => {
+                const id = linha.querySelector(".e-id").innerText.toLowerCase();
+                const titulo = linha.querySelector(".e-titulo").innerText.toLowerCase();
+                const bateBusca = id.includes(inputBusca) || titulo.includes(inputBusca);
+                linha.style.display = bateBusca ? "" : "none";
+            });
+        } else {
+            aplicarLimiteTabela('tabelaExemplares', 'btnVerMaisExemplares');
+        }
+    }
+
+    function abrirModalUsuario(id, nome, cpf, tipo, status) {
+        document.getElementById('editUsuarioId').value = id;
+        document.getElementById('editUsuarioNome').value = nome;
+        document.getElementById('editUsuarioCpf').value = cpf;
+        document.getElementById('editUsuarioTipo').value = tipo;
+        document.getElementById('editUsuarioStatus').value = status;
+        document.getElementById('modalEditarUsuario').style.display = 'block';
+    }
+    function fecharModalUsuario() { document.getElementById('modalEditarUsuario').style.display = 'none'; }
+
+    function abrirModalLivro(botao) {
+        document.getElementById('editLivroIsbn').value = botao.getAttribute('data-isbn');
+        document.getElementById('editLivroTitulo').value = botao.getAttribute('data-titulo');
+        document.getElementById('editLivroAutor').value = botao.getAttribute('data-autor');
+        document.getElementById('editLivroUrl').value = botao.getAttribute('data-url');
+        document.getElementById('editLivroSinopse').value = botao.getAttribute('data-sinopse');
+        document.getElementById('editLivroCategoria').value = botao.getAttribute('data-categoria');
+        document.getElementById('editLivroEditora').value = botao.getAttribute('data-editora');
+        document.getElementById('editLivroAno').value = botao.getAttribute('data-ano');
+        document.getElementById('editLivroRestricao').value = botao.getAttribute('data-restricao');
+        document.getElementById('modalEditarLivro').style.display = 'block';
+    }
+    function fecharModalLivro() { document.getElementById('modalEditarLivro').style.display = 'none'; }
+
+    function abrirModalExemplar(id, estado, status) {
+        document.getElementById('editExemplarId').value = id;
+        document.getElementById('editExemplarEstado').value = estado;
+        document.getElementById('editExemplarStatus').value = status;
+        document.getElementById('modalEditarExemplar').style.display = 'block';
+    }
+    function fecharModalExemplar() { document.getElementById('modalEditarExemplar').style.display = 'none'; }
+
+    window.onclick = function(event) {
+        const modais = [
+            document.getElementById('modalEditarUsuario'),
+            document.getElementById('modalEditarLivro'),
+            document.getElementById('modalEditarExemplar'),
+            document.getElementById('modalEditarEmprestimo')
+        ];
+        modais.forEach(modal => {
+            if (event.target == modal) {
+                modal.style.display = "none";
             }
         });
     }

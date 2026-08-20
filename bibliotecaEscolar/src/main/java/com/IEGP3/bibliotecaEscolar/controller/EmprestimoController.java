@@ -9,10 +9,14 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/admin/emprestimos")
@@ -30,7 +34,6 @@ public class EmprestimoController {
     @Autowired
     private ReservaRepository reservaRepository;
 
-    // 1. Listar todos os empréstimos ativos no painel do Bibliotecário
     @GetMapping
     public String listarEmprestimos(HttpSession session, Model model) {
         Usuario logado = (Usuario) session.getAttribute("usuarioLogado");
@@ -43,13 +46,41 @@ public class EmprestimoController {
         return "admin/emprestimos";
     }
 
-    // 2. Realizar empréstimo
+    @PostMapping("/confirmar-retirada/{id}")
+    public String confirmarRetirada(@PathVariable("id") Long idEmprestimo, RedirectAttributes redirectAttributes) {
+        Optional<Emprestimo> emprestimoOpt = emprestimoRepository.findById(idEmprestimo);
+
+        if (emprestimoOpt.isEmpty()) {
+            redirectAttributes.addFlashAttribute("erro", "Empréstimo não encontrado!");
+            return "redirect:/admin/testAdm";
+        }
+
+        Emprestimo emp = emprestimoOpt.get();
+        Usuario usuario = emp.getUsuario();
+
+        int diasEmprestimo = 7;
+        if (usuario.getTipoUsuario() == TipoUsuario.INSTRUTOR) {
+            diasEmprestimo = 15;
+        }
+        if (emp.getExemplar().getLivro().getCategoriaRestricao() == CategoriaRestricao.RESTRITO) {
+            diasEmprestimo = 1;
+        }
+
+        emp.setDataAlugada(LocalDate.now());
+        emp.setDataEstimada(LocalDate.now().plusDays(diasEmprestimo));
+        emp.setStatus(StatusEmprestimo.EM_ANDAMENTO);
+
+        emprestimoRepository.save(emp);
+
+        redirectAttributes.addFlashAttribute("sucesso", "Retirada confirmada! Livro entregue ao aluno e empréstimo ativado.");
+        return "redirect:/admin/testAdm";
+    }
+
     @PostMapping("/salvar")
     public String realizarEmprestimo(@RequestParam("cpfUsuario") String cpfUsuario,
                                      @RequestParam("idExemplar") Long idExemplar,
                                      RedirectAttributes redirectAttributes) {
 
-        // Limpa o CPF para manter apenas numérico (11 dígitos)
         String cpfLimpo = (cpfUsuario != null) ? cpfUsuario.replaceAll("[^0-9]", "") : "";
         Optional<Usuario> usuarioOpt = usuarioRepository.findByCpf(cpfLimpo);
 
@@ -60,7 +91,6 @@ public class EmprestimoController {
 
         Usuario usuario = usuarioOpt.get();
 
-        // Verifica status de penalidade do usuário
         if (usuario.getStatusPenalidade() != StatusPenalidade.ATIVO) {
             redirectAttributes.addFlashAttribute("erro", "Usuário suspenso ou bloqueado de realizar novos empréstimos!");
             return "redirect:/admin/testAdm";
@@ -79,7 +109,6 @@ public class EmprestimoController {
             return "redirect:/admin/testAdm";
         }
 
-        // Regra de prazos: Aluno (7 dias), Instrutor (15 dias), Restritos/Didáticos (1 dia)
         int diasEmprestimo = 7;
         if (usuario.getTipoUsuario() == TipoUsuario.INSTRUTOR) {
             diasEmprestimo = 15;
@@ -96,17 +125,14 @@ public class EmprestimoController {
         emprestimo.setDataEstimada(LocalDate.now().plusDays(diasEmprestimo));
         emprestimo.setStatus(StatusEmprestimo.EM_ANDAMENTO);
 
-        // Atualiza status do exemplar para INDISPONIVEL
         exemplar.setStatusDisponibilidade(StatusDisponibilidade.INDISPONIVEL);
         exemplarRepository.save(exemplar);
-
         emprestimoRepository.save(emprestimo);
 
         redirectAttributes.addFlashAttribute("sucesso", "Empréstimo realizado com sucesso!");
         return "redirect:/admin/testAdm";
     }
 
-    // 3. Processar devolução de exemplar
     @PostMapping("/devolver/{id}")
     public String devolverExemplar(@PathVariable("id") Long idEmprestimo, RedirectAttributes redirectAttributes) {
         Optional<Emprestimo> emprestimoOpt = emprestimoRepository.findById(idEmprestimo);
@@ -122,10 +148,12 @@ public class EmprestimoController {
         emprestimo.setDataDevolucao(hoje);
         emprestimo.setStatus(StatusEmprestimo.DEVOLVIDO);
 
-        // Regra de Penalidade: Cada dia de atraso gera suspensão de 2 dias
         if (hoje.isAfter(emprestimo.getDataEstimada())) {
             long diasAtraso = ChronoUnit.DAYS.between(emprestimo.getDataEstimada(), hoje);
             long diasSuspensao = diasAtraso * 2;
+
+            double valorMultaCalc = 2.00 + (diasAtraso * 0.50);
+            emprestimo.setValorMulta(BigDecimal.valueOf(valorMultaCalc).setScale(2, RoundingMode.HALF_UP));
 
             Usuario usuario = emprestimo.getUsuario();
             usuario.setStatusPenalidade(StatusPenalidade.SUSPENSO);
@@ -136,18 +164,46 @@ public class EmprestimoController {
             usuario.setDataFimSuspensao(inicioSuspensao.plusDays(diasSuspensao));
             usuarioRepository.save(usuario);
 
-            redirectAttributes.addFlashAttribute("erro", "Devolução concluída com " + diasAtraso + " dia(s) de atraso. Usuário suspenso por " + diasSuspensao + " dia(s) (até " + usuario.getDataFimSuspensao() + ").");
+            redirectAttributes.addFlashAttribute("erro", "Devolução concluída com " + diasAtraso + " dia(s) de atraso. Multa gerada: R$ " + emprestimo.getValorMulta() + ". Suspenso por " + diasSuspensao + " dia(s).");
         } else {
             redirectAttributes.addFlashAttribute("sucesso", "Exemplar devolvido com sucesso dentro do prazo!");
         }
 
-        // Atualiza status do exemplar para DISPONIVEL
         Exemplar exemplar = emprestimo.getExemplar();
-        exemplar.setStatusDisponibilidade(StatusDisponibilidade.DISPONIVEL);
-        exemplarRepository.save(exemplar);
 
+        List<Reserva> filaReservas = reservaRepository.findAll().stream()
+                .filter(r -> r.getLivro().getIsbn().equals(exemplar.getLivro().getIsbn()) && "PENDENTE".equals(r.getStatus()))
+                .sorted(Comparator.comparing(Reserva::getDataReserva))
+                .collect(Collectors.toList());
+
+        if (!filaReservas.isEmpty()) {
+            Reserva proximaReserva = filaReservas.get(0);
+            proximaReserva.setStatus("AGUARDANDO_RETIRADA");
+            reservaRepository.save(proximaReserva);
+
+            redirectAttributes.addFlashAttribute("alertaReserva", "🚨 ATENÇÃO: Este livro está reservado para o aluno: " + proximaReserva.getUsuario().getNome() + ". Ele tem 48h para buscar.");
+        } else {
+            exemplar.setStatusDisponibilidade(StatusDisponibilidade.DISPONIVEL);
+        }
+
+        exemplarRepository.save(exemplar);
         emprestimoRepository.save(emprestimo);
 
         return "redirect:/admin/testAdm";
+    }
+
+    // AÇÃO CORRIGIDA: Usuário solicita a devolução
+    @PostMapping("/usuario/solicitar-devolucao")
+    public String solicitarDevolucaoUsuario(@RequestParam("idEmprestimo") Long idEmprestimo, RedirectAttributes redirectAttributes) {
+        Optional<Emprestimo> emprestimoOpt = emprestimoRepository.findById(idEmprestimo);
+        if (emprestimoOpt.isPresent()) {
+            Emprestimo emp = emprestimoOpt.get();
+            emp.setStatus(StatusEmprestimo.AGUARDANDO_DEVOLUCAO);
+            emprestimoRepository.save(emp);
+            redirectAttributes.addFlashAttribute("sucesso", "Solicitação de devolução enviada com sucesso! Aguarde a confirmação no balcão.");
+        } else {
+            redirectAttributes.addFlashAttribute("erro", "Empréstimo não encontrado!");
+        }
+        return "redirect:/usuario/emprestimos";
     }
 }

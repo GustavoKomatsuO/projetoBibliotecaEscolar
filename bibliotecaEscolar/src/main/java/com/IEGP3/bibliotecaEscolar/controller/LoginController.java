@@ -1,11 +1,7 @@
 package com.IEGP3.bibliotecaEscolar.controller;
 
-import com.IEGP3.bibliotecaEscolar.model.Livro;
-import com.IEGP3.bibliotecaEscolar.model.StatusDisponibilidade;
-import com.IEGP3.bibliotecaEscolar.model.TipoUsuario;
-import com.IEGP3.bibliotecaEscolar.model.Usuario;
-import com.IEGP3.bibliotecaEscolar.repository.LivroRepository;
-import com.IEGP3.bibliotecaEscolar.repository.UsuarioRepository;
+import com.IEGP3.bibliotecaEscolar.model.*;
+import com.IEGP3.bibliotecaEscolar.repository.*;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -14,8 +10,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Controller
 public class LoginController {
@@ -23,59 +24,77 @@ public class LoginController {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
-    // INJEÇÃO NECESSÁRIA: Para carregar os livros no catálogo do usuário
     @Autowired
     private LivroRepository livroRepository;
 
-    // Redireciona a raiz para a tela de login
+    @Autowired
+    private EmprestimoRepository emprestimoRepository;
+
+    @Autowired
+    private ExemplarRepository exemplarRepository;
+
+    @Autowired
+    private ReservaRepository reservaRepository;
+
+    // ==========================================
+    // MÉTODO AUXILIAR DE DESENVOLVIMENTO
+    // Evita a perda de sessão ao salvar alterações no código
+    // ==========================================
+    private Usuario obterOuInjetarUsuarioDev(HttpSession session) {
+        Usuario logado = (Usuario) session.getAttribute("usuarioLogado");
+        if (logado == null) {
+            logado = usuarioRepository.findAll().stream().findFirst().orElse(null);
+            if (logado != null) {
+                session.setAttribute("usuarioLogado", logado);
+            }
+        }
+        return logado;
+    }
+
+    // ==========================================
+    // ROTAS DE AUTENTICAÇÃO E CADASTRO
+    // ==========================================
+
     @GetMapping("/")
     public String index() {
         return "redirect:/login";
     }
 
-    // Exibe a tela de login
     @GetMapping("/login")
     public String paginaLogin() {
         return "login";
     }
 
-    // Exibe a tela de cadastro
     @GetMapping("/cadastrar")
     public String paginaCadastro() {
         return "usuario/cadastrarUser";
     }
 
-    // Processa o formulário de cadastro com a regra do CPF estrito (11 dígitos numéricos)
     @PostMapping("/cadastrar/salvar")
     public String salvarCadastro(Usuario usuario,
                                  @RequestParam("confirmarSenha") String confirmarSenha,
                                  Model model) {
 
-        // 1. Limpa o CPF mantendo APENAS os caracteres numéricos
         if (usuario.getCpf() != null) {
             String cpfLimpo = usuario.getCpf().replaceAll("[^0-9]", "");
             usuario.setCpf(cpfLimpo);
         }
 
-        // 2. Valida obrigatoriamente se possui EXATAMENTE 11 dígitos numéricos
         if (usuario.getCpf() == null || usuario.getCpf().length() != 11) {
             model.addAttribute("erro", "O CPF é obrigatório e deve ter exatamente 11 dígitos numéricos!");
             return "usuario/cadastrarUser";
         }
 
-        // 3. Valida se as senhas coincidem
         if (!usuario.getSenha().equals(confirmarSenha)) {
             model.addAttribute("erro", "As senhas não coincidem!");
             return "usuario/cadastrarUser";
         }
 
-        // 4. Verifica se o CPF já está cadastrado no banco de dados
         if (usuarioRepository.findByCpf(usuario.getCpf()).isPresent()) {
             model.addAttribute("erro", "CPF já cadastrado no sistema!");
             return "usuario/cadastrarUser";
         }
 
-        // 5. Regra para atribuição do tipo de utilizador/usuário
         String senhaDigitada = usuario.getSenha();
         if (senhaDigitada.startsWith("@adm") && senhaDigitada.length() >= 10) {
             usuario.setTipoUsuario(TipoUsuario.INSTRUTOR);
@@ -84,11 +103,9 @@ public class LoginController {
         }
 
         usuarioRepository.save(usuario);
-
         return "redirect:/login?sucessoCadastro";
     }
 
-    // Processa a autenticação/login do usuário
     @PostMapping("/autenticar")
     public String autenticar(@RequestParam("cpf") String cpf,
                              @RequestParam("senha") String senha,
@@ -113,49 +130,309 @@ public class LoginController {
         return "login";
     }
 
-    // CORREÇÃO 1: Rota do catálogo do usuário enviando os livros com Thymeleaf
+    @GetMapping("/logout")
+    public String logout(HttpSession session) {
+        session.invalidate();
+        return "redirect:/login";
+    }
+
+    // ==========================================
+    // ROTAS DO ACERVO DO USUÁRIO
+    // ==========================================
+
     @GetMapping("/usuario/testUser")
     public String testUser(HttpSession session, Model model) {
-        Usuario logado = (Usuario) session.getAttribute("usuarioLogado");
-        if (logado == null) {
-            return "redirect:/login";
-        }
+        Usuario logado = obterOuInjetarUsuarioDev(session);
+        if (logado == null) return "redirect:/login";
 
-        // Passa a lista de todos os livros para renderizar os cards no HTML
-        model.addAttribute("livros", livroRepository.findAll());
+        List<Livro> livros = livroRepository.findAll();
+        List<String> categorias = livros.stream()
+                .map(Livro::getCategoria)
+                .distinct()
+                .filter(c -> c != null && !c.isEmpty())
+                .sorted()
+                .toList();
+
+        model.addAttribute("livros", livros);
+        model.addAttribute("categorias", categorias);
+        model.addAttribute("usuarioNome", logado.getNome());
         return "usuario/testUser";
     }
 
-    // CORREÇÃO 2: Rota para abrir os detalhes do livro
     @GetMapping("/usuario/livro/{isbn}")
     public String detalhesLivro(@PathVariable("isbn") Long isbn, HttpSession session, Model model) {
-        Usuario logado = (Usuario) session.getAttribute("usuarioLogado");
-        if (logado == null) {
-            return "redirect:/login";
-        }
+        Usuario logado = obterOuInjetarUsuarioDev(session);
+        if (logado == null) return "redirect:/login";
 
         Optional<Livro> livroOpt = livroRepository.findById(isbn);
-        if (livroOpt.isEmpty()) {
-            return "redirect:/usuario/testUser";
-        }
+        if (livroOpt.isEmpty()) return "redirect:/usuario/testUser";
 
         Livro livro = livroOpt.get();
 
-        // Lógica simples para verificar se há algum exemplar disponível
         boolean disponivel = livro.getExemplares() != null && livro.getExemplares().stream()
                 .anyMatch(e -> e.getStatusDisponibilidade() == StatusDisponibilidade.DISPONIVEL);
 
         model.addAttribute("livro", livro);
         model.addAttribute("status", disponivel ? "DISPONIVEL" : "INDISPONIVEL");
+        model.addAttribute("usuarioNome", logado.getNome());
+        model.addAttribute("isFavorito", false);
 
-        // Retorna o HTML que criamos em src/main/resources/templates/usuario/detalhesLivro.html
-        return "usuario/detalhesLivro";
+        return "usuario/layoutLivro";
     }
 
-    // Realiza o logout limpando a sessão
-    @GetMapping("/logout")
-    public String logout(HttpSession session) {
-        session.invalidate();
-        return "redirect:/login";
+    // ==========================================
+    // REGRAS DE NEGÓCIO DE EMPRÉSTIMO APLICADAS
+    // ==========================================
+
+    @GetMapping("/usuario/emprestimo/{isbn}")
+    public String paginaEmprestimoUsuario(@PathVariable("isbn") Long isbn, HttpSession session, Model model, RedirectAttributes redirectAttributes) {
+        Usuario logado = obterOuInjetarUsuarioDev(session);
+        if (logado == null) return "redirect:/login";
+
+        Optional<Livro> livroOpt = livroRepository.findById(isbn);
+        if (livroOpt.isEmpty()) return "redirect:/usuario/testUser";
+        Livro livro = livroOpt.get();
+
+        if (logado.getStatusPenalidade() != StatusPenalidade.ATIVO) {
+            redirectAttributes.addFlashAttribute("erro", "Empréstimo negado: Você está suspenso(a).");
+            return "redirect:/usuario/livro/" + isbn;
+        }
+
+        List<Emprestimo> ativos = emprestimoRepository.findAll().stream()
+                .filter(e -> e.getUsuario().getId().equals(logado.getId()) && (e.getStatus() == StatusEmprestimo.EM_ANDAMENTO || e.getStatus() == StatusEmprestimo.AGUARDANDO_RETIRADA))
+                .collect(Collectors.toList());
+
+        boolean temAtraso = emprestimoRepository.findAll().stream()
+                .anyMatch(e -> e.getUsuario().getId().equals(logado.getId()) && e.getStatus() == StatusEmprestimo.EM_ANDAMENTO && e.getDataEstimada().isBefore(LocalDate.now()));
+        if (temAtraso) {
+            redirectAttributes.addFlashAttribute("erro", "Empréstimo negado: Você possui livros em atraso! Efetue as devoluções pendentes primeiro.");
+            return "redirect:/usuario/livro/" + isbn;
+        }
+
+        int limite = (logado.getTipoUsuario() == TipoUsuario.INSTRUTOR) ? 5 : 3;
+        if (ativos.size() >= limite) {
+            redirectAttributes.addFlashAttribute("erro", "Empréstimo negado: Limite máximo de " + limite + " livros simultâneos atingido.");
+            return "redirect:/usuario/livro/" + isbn;
+        }
+
+        boolean jaPossuiMesmoLivro = ativos.stream()
+                .anyMatch(e -> e.getExemplar().getLivro().getIsbn().equals(isbn));
+        if (jaPossuiMesmoLivro) {
+            redirectAttributes.addFlashAttribute("erro", "Empréstimo negado: Você já possui um exemplar deste livro em andamento ou aguardando retirada.");
+            return "redirect:/usuario/livro/" + isbn;
+        }
+
+        int dias = 7;
+        if (logado.getTipoUsuario() == TipoUsuario.INSTRUTOR) dias = 15;
+        if (livro.getCategoriaRestricao() == CategoriaRestricao.RESTRITO) dias = 1;
+
+        model.addAttribute("livro", livro);
+        model.addAttribute("dataHoje", LocalDate.now());
+        model.addAttribute("dataEstimada", LocalDate.now().plusDays(dias));
+
+        return "usuario/emprestimoUsuario";
+    }
+
+    @PostMapping("/usuario/efetuar-emprestimo")
+    public String efetuarEmprestimo(@RequestParam("isbn") Long isbn, HttpSession session, RedirectAttributes redirectAttributes) {
+        Usuario logado = obterOuInjetarUsuarioDev(session);
+        if (logado == null) return "redirect:/login";
+
+        Optional<Livro> livroOpt = livroRepository.findById(isbn);
+        if (livroOpt.isEmpty()) {
+            redirectAttributes.addFlashAttribute("erro", "Erro: O livro selecionado não existe.");
+            return "redirect:/usuario/testUser";
+        }
+        Livro livro = livroOpt.get();
+
+        if (logado.getStatusPenalidade() != StatusPenalidade.ATIVO) {
+            redirectAttributes.addFlashAttribute("erro", "Empréstimo negado: Você está suspenso(a).");
+            return "redirect:/usuario/livro/" + isbn;
+        }
+
+        List<Emprestimo> ativos = emprestimoRepository.findAll().stream()
+                .filter(e -> e.getUsuario().getId().equals(logado.getId()) && (e.getStatus() == StatusEmprestimo.EM_ANDAMENTO || e.getStatus() == StatusEmprestimo.AGUARDANDO_RETIRADA))
+                .collect(Collectors.toList());
+
+        boolean temAtraso = emprestimoRepository.findAll().stream()
+                .anyMatch(e -> e.getUsuario().getId().equals(logado.getId()) && e.getStatus() == StatusEmprestimo.EM_ANDAMENTO && e.getDataEstimada().isBefore(LocalDate.now()));
+        if (temAtraso) {
+            redirectAttributes.addFlashAttribute("erro", "Empréstimo negado: Você possui livros em atraso! Efetue as devoluções pendentes primeiro.");
+            return "redirect:/usuario/livro/" + isbn;
+        }
+
+        int limite = (logado.getTipoUsuario() == TipoUsuario.INSTRUTOR) ? 5 : 3;
+        if (ativos.size() >= limite) {
+            redirectAttributes.addFlashAttribute("erro", "Empréstimo negado: Limite máximo de " + limite + " livros simultâneos atingido.");
+            return "redirect:/usuario/livro/" + isbn;
+        }
+
+        boolean jaPossuiMesmoLivro = ativos.stream()
+                .anyMatch(e -> e.getExemplar().getLivro().getIsbn().equals(isbn));
+        if (jaPossuiMesmoLivro) {
+            redirectAttributes.addFlashAttribute("erro", "Empréstimo negado: Você já possui um exemplar deste livro em andamento ou aguardando retirada.");
+            return "redirect:/usuario/livro/" + isbn;
+        }
+
+        Optional<Exemplar> exemplarDisponivel = livro.getExemplares().stream()
+                .filter(e -> e.getStatusDisponibilidade() == StatusDisponibilidade.DISPONIVEL)
+                .findFirst();
+
+        if (exemplarDisponivel.isEmpty()) {
+            redirectAttributes.addFlashAttribute("erro", "Ops! Parece que o último exemplar disponível já foi alugado ou reservado por outra pessoa.");
+            return "redirect:/usuario/livro/" + isbn;
+        }
+
+        int dias = 7;
+        if (logado.getTipoUsuario() == TipoUsuario.INSTRUTOR) dias = 15;
+        if (livro.getCategoriaRestricao() == CategoriaRestricao.RESTRITO) dias = 1;
+
+        Emprestimo emprestimo = new Emprestimo();
+        emprestimo.setUsuario(logado);
+        emprestimo.setExemplar(exemplarDisponivel.get());
+        emprestimo.setDataAlugada(LocalDate.now());
+        emprestimo.setDataEstimada(LocalDate.now().plusDays(dias));
+        emprestimo.setStatus(StatusEmprestimo.AGUARDANDO_RETIRADA);
+
+        Exemplar exemplar = exemplarDisponivel.get();
+        exemplar.setStatusDisponibilidade(StatusDisponibilidade.INDISPONIVEL);
+
+        exemplarRepository.save(exemplar);
+        emprestimoRepository.save(emprestimo);
+
+        redirectAttributes.addFlashAttribute("sucesso", "Solicitação enviada com sucesso! Dirija-se à biblioteca para retirar o exemplar físico do livro: " + livro.getTitulo());
+        return "redirect:/usuario/testUser";
+    }
+
+    // ==========================================
+    // REGRAS DE NEGÓCIO DE RESERVA APLICADAS
+    // ==========================================
+
+    @GetMapping("/usuario/reserva/{isbn}")
+    public String paginaReservaUsuario(@PathVariable("isbn") Long isbn, HttpSession session, Model model, RedirectAttributes redirectAttributes) {
+        Usuario logado = obterOuInjetarUsuarioDev(session);
+        if (logado == null) return "redirect:/login";
+
+        Optional<Livro> livroOpt = livroRepository.findById(isbn);
+        if (livroOpt.isEmpty()) return "redirect:/usuario/testUser";
+        Livro livro = livroOpt.get();
+
+        if (logado.getStatusPenalidade() != StatusPenalidade.ATIVO) {
+            redirectAttributes.addFlashAttribute("erro", "Reserva negada: Você está suspenso(a).");
+            return "redirect:/usuario/livro/" + isbn;
+        }
+
+        boolean temAtraso = emprestimoRepository.findAll().stream()
+                .anyMatch(e -> e.getUsuario().getId().equals(logado.getId()) && e.getStatus() == StatusEmprestimo.EM_ANDAMENTO && e.getDataEstimada().isBefore(LocalDate.now()));
+
+        if (temAtraso) {
+            redirectAttributes.addFlashAttribute("erro", "Reserva negada: Você possui livros em atraso! Efetue as devoluções pendentes primeiro.");
+            return "redirect:/usuario/livro/" + isbn;
+        }
+
+        boolean jaPossuiReserva = reservaRepository.findAll().stream()
+                .anyMatch(r -> r.getUsuario().getId().equals(logado.getId())
+                        && r.getLivro().getIsbn().equals(isbn)
+                        && "PENDENTE".equals(r.getStatus()));
+        if (jaPossuiReserva) {
+            redirectAttributes.addFlashAttribute("erro", "Reserva negada: Você já possui uma reserva ativa para este livro.");
+            return "redirect:/usuario/livro/" + isbn;
+        }
+
+        model.addAttribute("livro", livro);
+        model.addAttribute("dataMinima", LocalDate.now().toString());
+
+        return "usuario/reservaUsuario";
+    }
+
+    @PostMapping("/usuario/efetuar-reserva")
+    public String efetuarReserva(@RequestParam("isbn") Long isbn,
+                                 @RequestParam("dataReserva") String dataReservaStr,
+                                 HttpSession session,
+                                 RedirectAttributes redirectAttributes) {
+        Usuario logado = obterOuInjetarUsuarioDev(session);
+        if (logado == null) return "redirect:/login";
+
+        Optional<Livro> livroOpt = livroRepository.findById(isbn);
+        if (livroOpt.isEmpty()) {
+            redirectAttributes.addFlashAttribute("erro", "Erro: O livro selecionado não existe.");
+            return "redirect:/usuario/testUser";
+        }
+        Livro livro = livroOpt.get();
+
+        LocalDate dataEscolhida = LocalDate.parse(dataReservaStr);
+        if (dataEscolhida.isBefore(LocalDate.now())) {
+            redirectAttributes.addFlashAttribute("erro", "Erro: A data da reserva não pode ser no passado.");
+            return "redirect:/usuario/reserva/" + isbn;
+        }
+
+        Reserva reserva = new Reserva(logado, livro, dataEscolhida);
+        reserva.setStatus("PENDENTE");
+        reservaRepository.save(reserva);
+
+        DateTimeFormatter formatoBr = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        redirectAttributes.addFlashAttribute("sucesso", "Reserva efetuada com sucesso para o dia " + dataEscolhida.format(formatoBr) + ". O livro ficará aguardando retirada por 48h assim que devolvido.");
+        return "redirect:/usuario/testUser";
+    }
+
+    // ==========================================
+    // ROTA MEUS EMPRÉSTIMOS E CANCELAMENTOS
+    // ==========================================
+
+    @GetMapping("/usuario/emprestimos")
+    public String meusEmprestimos(HttpSession session, Model model) {
+        Usuario logado = obterOuInjetarUsuarioDev(session);
+        if (logado == null) return "redirect:/login";
+
+        List<Emprestimo> meusEmprestimos = emprestimoRepository.findAll().stream()
+                .filter(e -> e.getUsuario().getId().equals(logado.getId()))
+                .collect(Collectors.toList());
+
+        List<Reserva> minhasReservas = reservaRepository.findAll().stream()
+                .filter(r -> r.getUsuario().getId().equals(logado.getId()))
+                .collect(Collectors.toList());
+
+        model.addAttribute("emprestimos", meusEmprestimos);
+        model.addAttribute("reservas", minhasReservas);
+        model.addAttribute("usuarioNome", logado.getNome());
+
+        return "usuario/meusEmprestimos";
+    }
+
+    @PostMapping("/usuario/emprestimo/cancelar")
+    public String cancelarEmprestimo(@RequestParam("idEmprestimo") Long id, HttpSession session, RedirectAttributes redirectAttributes) {
+        Usuario logado = obterOuInjetarUsuarioDev(session);
+        if (logado == null) return "redirect:/login";
+
+        Optional<Emprestimo> empOpt = emprestimoRepository.findById(id);
+        if (empOpt.isPresent()) {
+            Emprestimo e = empOpt.get();
+            if (e.getUsuario().getId().equals(logado.getId()) && (e.getStatus() == StatusEmprestimo.EM_ANDAMENTO || e.getStatus() == StatusEmprestimo.AGUARDANDO_RETIRADA)) {
+                e.setStatus(StatusEmprestimo.DEVOLVIDO);
+                e.setDataDevolucao(LocalDate.now());
+                Exemplar ex = e.getExemplar();
+                ex.setStatusDisponibilidade(StatusDisponibilidade.DISPONIVEL);
+                exemplarRepository.save(ex);
+                emprestimoRepository.save(e);
+                redirectAttributes.addFlashAttribute("sucesso", "Empréstimo cancelado/devolvido com sucesso.");
+            }
+        }
+        return "redirect:/usuario/emprestimos";
+    }
+
+    @PostMapping("/usuario/reserva/cancelar")
+    public String cancelarReserva(@RequestParam("idReserva") Long id, HttpSession session, RedirectAttributes redirectAttributes) {
+        Usuario logado = obterOuInjetarUsuarioDev(session);
+        if (logado == null) return "redirect:/login";
+
+        Optional<Reserva> resOpt = reservaRepository.findById(id);
+        if (resOpt.isPresent()) {
+            Reserva r = resOpt.get();
+            if (r.getUsuario().getId().equals(logado.getId())) {
+                reservaRepository.delete(r);
+                redirectAttributes.addFlashAttribute("sucesso", "Reserva cancelada com sucesso.");
+            }
+        }
+        return "redirect:/usuario/emprestimos";
     }
 }

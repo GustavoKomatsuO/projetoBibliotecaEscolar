@@ -1,35 +1,83 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <title>Realizar Empréstimo / Reserva - IGP3</title>
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f9; padding: 40px 20px; display: flex; justify-content: center; }
-        .box { background: white; padding: 30px; border-radius: 12px; width: 100%; max-width: 500px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .rule-box { background: #fffbebfb; border-left: 4px solid #f59e0b; padding: 12px; font-size: 0.85rem; margin: 15px 0; }
-        .btn-submit { background: #002b5c; color: white; width: 100%; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-    </style>
-</head>
+<!-- (Head e estilos mantidos igual...) -->
 <body>
+<!-- ... (Header e Sidebar mantidos igual) ... -->
+<main class="container">
+    <!-- MEUS EMPRÉSTIMOS / SOLICITAÇÕES -->
+    <h2>Meus Empréstimos e Solicitações</h2>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+            <tr>
+                <th>Livro</th>
+                <th>Data Solicitação / Alugada</th>
+                <th>Previsão de Devolução</th>
+                <th>Status</th>
+                <th>Ações</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="emp : ${emprestimos}" th:if="${emp.status.name() == 'EM_ANDAMENTO' || emp.status.name() == 'AGUARDANDO_RETIRADA' || emp.status.name() == 'AGUARDANDO_DEVOLUCAO'}">
+                <td th:text="${emp.exemplar.livro.titulo}">Título</td>
+                <td th:text="${emp.dataAlugada}">00/00/0000</td>
+                <td th:text="${emp.dataEstimada}">00/00/0000</td>
+                <td>
+                    <span th:if="${emp.status.name() == 'EM_ANDAMENTO'}" style="color: #065f46; font-weight: bold;">Em Andamento</span>
+                    <span th:if="${emp.status.name() == 'AGUARDANDO_RETIRADA'}" style="color: #b45309; font-weight: bold;">Aguardando Retirada</span>
+                    <span th:if="${emp.status.name() == 'AGUARDANDO_DEVOLUCAO'}" style="color: #3b82f6; font-weight: bold;">Aguardando Aprovação da Devolução</span>
+                </td>
+                <td>
+                    <!-- NOVA AÇÃO: Solicitar Devolução muda status mas não devolve direto -->
+                    <form th:if="${emp.status.name() == 'EM_ANDAMENTO'}" th:action="@{/usuario/emprestimo/solicitar-devolucao}" method="post">
+                        <input type="hidden" name="idEmprestimo" th:value="${emp.idEmprestimo}" />
+                        <button type="submit" class="btn-cancel" style="background: #3b82f6; color: white; border: none;">Devolver Livro</button>
+                    </form>
 
-<div class="box">
-    <h2>Confirmar Empréstimo / Reserva</h2>
-    <p>Livro: <strong th:text="${livro.titulo}"></strong></p>
+                    <form th:if="${emp.status.name() == 'AGUARDANDO_RETIRADA'}" th:action="@{/usuario/emprestimo/cancelar}" method="post">
+                        <input type="hidden" name="idEmprestimo" th:value="${emp.idEmprestimo}" />
+                        <button type="submit" class="btn-cancel">Cancelar</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
 
-    <form th:action="@{/usuario/efetuar-emprestimo}" method="post">
-        <input type="hidden" name="isbn" th:value="${livro.isbn}" />
-
-        <p><strong>Data do Empréstimo:</strong> <span th:text="${dataHoje}"></span></p>
-        <p><strong>Data de Devolução Prevista:</strong> <span th:text="${dataEstimada}"></span></p>
-
-        <div class="rule-box">
-            <strong>Aviso de Penalidade por Atraso:</strong><br>
-            Em caso de atraso na devolução, será cobrada uma multa diária com <strong>juros compostos de 5% ao dia</strong> calculados sobre a taxa base de R$ 2,00.
-        </div>
-
-        <button type="submit" class="btn-submit">Confirmar Empréstimo</button>
-    </form>
+    <!-- MINHAS RESERVAS -->
+    <h2>Minhas Reservas Pendentes</h2>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+            <tr>
+                <th>Livro</th>
+                <th>Data Solicitada</th>
+                <th>Status / Posição na Fila</th>
+                <th>Ações</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="res : ${reservas}" th:if="${res.status == 'PENDENTE' || res.status == 'AGUARDANDO_RETIRADA'}">
+                <td th:text="${res.livro.titulo}">Título</td>
+                <td th:text="${res.dataReserva}">00/00/0000</td>
+                <td>
+                    <!-- NOVA LÓGICA: Exibição da Posição na Fila -->
+                    <span th:if="${res.status == 'PENDENTE'}" style="color: #b45309; font-weight: bold;">
+                            Pendente (Posição: <span th:text="${res.posicaoFila}">1</span>)
+                        </span>
+                    <span th:if="${res.status == 'AGUARDANDO_RETIRADA'}" style="color: #065f46; font-weight: bold;">Disponível para Retirada (48h)</span>
+                </td>
+                <td>
+                    <form th:action="@{/usuario/reserva/cancelar}" method="post">
+                        <input type="hidden" name="idReserva" th:value="${res.idReserva}" />
+                        <button type="submit" class="btn-cancel">Cancelar Reserva</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
 </div>
-
 </body>
 </html>

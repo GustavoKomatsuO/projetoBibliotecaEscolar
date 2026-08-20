@@ -13,6 +13,9 @@ public class Livro {
     @Column(nullable = false)
     private String titulo;
 
+    @Column(nullable = false)
+    private String autor;
+
     private String editora;
 
     @Column(name = "ano_publicacao")
@@ -24,24 +27,28 @@ public class Livro {
     @Column(name = "categoria_restricao")
     private CategoriaRestricao categoriaRestricao = CategoriaRestricao.PADRAO;
 
-    // NOVO CAMPO: URL da imagem da capa
     @Column(name = "url_imagem", length = 1500)
     private String urlImagem;
 
-    // RELACIONAMENTO: Para saber se o livro tem exemplares (e mostrar no TestUser)
+    // NOVO CAMPO: Sinopse / Descrição (permite null por padrão)
+    @Column(columnDefinition = "TEXT")
+    private String sinopse;
+
     @OneToMany(mappedBy = "livro", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Exemplar> exemplares;
 
     public Livro() {}
 
-    public Livro(Long isbn, String titulo, String editora, Integer anoPublicacao, String categoria, CategoriaRestricao categoriaRestricao, String urlImagem) {
+    public Livro(Long isbn, String titulo, String autor, String editora, Integer anoPublicacao, String categoria, CategoriaRestricao categoriaRestricao, String urlImagem, String sinopse) {
         this.isbn = isbn;
         this.titulo = titulo;
+        this.autor = autor;
         this.editora = editora;
         this.anoPublicacao = anoPublicacao;
         this.categoria = categoria;
         this.categoriaRestricao = categoriaRestricao;
         this.urlImagem = urlImagem;
+        this.sinopse = sinopse;
     }
 
     // Getters e Setters
@@ -50,6 +57,9 @@ public class Livro {
 
     public String getTitulo() { return titulo; }
     public void setTitulo(String titulo) { this.titulo = titulo; }
+
+    public String getAutor() { return autor; }
+    public void setAutor(String autor) { this.autor = autor; }
 
     public String getEditora() { return editora; }
     public void setEditora(String editora) { this.editora = editora; }
@@ -65,6 +75,9 @@ public class Livro {
 
     public String getUrlImagem() { return urlImagem; }
     public void setUrlImagem(String urlImagem) { this.urlImagem = urlImagem; }
+
+    public String getSinopse() { return sinopse; }
+    public void setSinopse(String sinopse) { this.sinopse = sinopse; }
 
     public List<Exemplar> getExemplares() { return exemplares; }
     public void setExemplares(List<Exemplar> exemplares) { this.exemplares = exemplares; }

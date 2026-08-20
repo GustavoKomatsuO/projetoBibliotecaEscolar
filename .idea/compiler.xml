@@ -7,10 +7,10 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="bibliotecaEscolar" />
-        <module name="bibliotecaEscolar (1)" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
+      <module name="bibliotecaEscolar (1)" target="17" />
       <module name="bibliotecaEscolar (2)" target="17" />
     </bytecodeTargetLevel>
   </component>

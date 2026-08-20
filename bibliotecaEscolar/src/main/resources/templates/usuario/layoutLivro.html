@@ -3,45 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detalhes do Livro - IGP3</title>
+    <title th:text="${livro.titulo} + ' - IGP3'">Detalhes do Livro - IGP3</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f9; padding: 40px 20px; display: flex; justify-content: center; }
-        .details-card { background: white; border-radius: 16px; width: 100%; max-width: 700px; padding: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); display: flex; gap: 30px; }
-        .book-cover { width: 200px; height: 280px; object-fit: cover; border-radius: 12px; }
-        .book-info { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
-        .status-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.85rem; }
-        .status-disponivel { background: #d1fae5; color: #065f46; }
-        .status-indisponivel { background: #fee2e2; color: #991b1b; }
-        .status-aguardando { background: #fef3c7; color: #92400e; }
-        .btn-action { background: #002b5c; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; text-align: center; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f4f6f9; display: flex; flex-direction: column; min-height: 100vh; }
+
+        .header-content {
+            background-color: #002b5c;
+            color: white;
+            width: 100%;
+            height: 75px;
+            padding: 0 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 0; left: 0; z-index: 1000;
+        }
+        .header-content h1 { font-size: 1.5rem; font-weight: 600; margin: 0; }
+        .header-right { display: flex; align-items: center; gap: 20px; }
+        .welcome-msg { font-size: 1.05rem; font-weight: 500; }
+        .header-badge { background-color: #ffd166; color: #1e293b; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; }
+
+        .main-layout { display: flex; margin-top: 75px; width: 100%; flex: 1; }
+        .sidebar { width: 75px; background-color: #ffffff; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; align-items: center; padding-top: 25px; position: fixed; top: 75px; bottom: 0; left: 0; z-index: 900; }
+        .sidebar-item { position: relative; width: 50px; height: 50px; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; border-radius: 10px; color: #475569; text-decoration: none; transition: 0.2s; }
+        .sidebar-item svg { width: 24px; height: 24px; fill: currentColor; }
+        .sidebar-item:hover, .sidebar-item.active { background-color: #002b5c; color: #ffd166; }
+
+        .sidebar-logout { margin-top: auto; margin-bottom: 25px; background-color: #dc2626 !important; color: white !important; }
+        .sidebar-logout:hover { background-color: #b91c1c !important; }
+
+        .content-container { margin-left: 75px; padding: 40px; flex: 1; display: flex; justify-content: center; align-items: flex-start; }
+        .book-details-card { background: white; border-radius: 12px; padding: 35px; border: 1px solid #e2e8f0; display: flex; gap: 40px; max-width: 900px; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        .book-cover { width: 280px; height: 400px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1; }
+        .book-info { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+        .book-info h2 { font-size: 2rem; color: #002b5c; margin-bottom: 5px; }
+        .book-info p { font-size: 1rem; color: #475569; }
+        .book-info strong { color: #1e293b; }
+        .badge-status { display: inline-block; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.85rem; width: fit-content; }
+        .badge-disponivel { background-color: #d1fae5; color: #065f46; }
+        .badge-indisponivel { background-color: #fee2e2; color: #991b1b; }
+
+        .actions-group { display: flex; gap: 15px; margin-top: 20px; align-items: center; }
+        .btn-action { padding: 12px 24px; border-radius: 8px; font-weight: bold; text-decoration: none; text-align: center; font-size: 1rem; transition: 0.2s; display: inline-block; border: none; cursor: pointer; }
+        .btn-emprestar { background-color: #002b5c; color: white; }
+        .btn-emprestar:hover { background-color: #001d3d; }
+        .btn-reservar { background-color: #f59e0b; color: white; }
+        .btn-reservar:hover { background-color: #d97706; }
+        .btn-voltar { background-color: #e2e8f0; color: #475569; }
+        .btn-voltar:hover { background-color: #cbd5e1; }
+
+        .alert { padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; text-align: center; }
+        .alert-danger { background-color: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
     </style>
 </head>
 <body>
 
-<div class="details-card">
-    <img th:src="${livro.urlImagem != null and !livro.urlImagem.isEmpty() ? livro.urlImagem : 'https://via.placeholder.com/200x280?text=Capa'}" class="book-cover" alt="Capa do Livro" />
-
-    <div class="book-info">
-        <div>
-            <h1 th:text="${livro.titulo}">Título do Livro</h1>
-            <p><strong>Editora:</strong> <span th:text="${livro.editora}"></span></p>
-            <p><strong>Ano:</strong> <span th:text="${livro.anoPublicacao}"></span></p>
-            <p><strong>Categoria:</strong> <span th:text="${livro.categoria}"></span></p>
-            <p><strong>ISBN:</strong> <span th:text="${livro.isbn}"></span></p>
-            <br>
-            <p><strong>Status de Disponibilidade:</strong>
-                <span th:if="${status == 'DISPONIVEL'}" class="status-badge status-disponivel">Disponível para Empréstimo</span>
-                <span th:if="${status == 'INDISPONIVEL'}" class="status-badge status-indisponivel">Indisponível</span>
-                <span th:if="${status == 'AGUARDANDO_RETIRADA'}" class="status-badge status-aguardando">Reservado / Aguardando Retirada</span>
-            </p>
-        </div>
-
-        <div>
-            <a th:if="${status == 'DISPONIVEL'}" th:href="@{'/usuario/emprestimo/' + ${livro.isbn}}" class="btn-action">Solicitar Empréstimo</a>
-            <a th:if="${status != 'DISPONIVEL'}" th:href="@{'/usuario/emprestimo/' + ${livro.isbn}}" class="btn-action" style="background: #f59e0b;">Fazer Reserva</a>
-            <a th:href="@{/usuario/testUser}" style="display: block; margin-top: 10px; text-align: center; color: #64748b;">Voltar ao Acervo</a>
-        </div>
+<header class="header-content">
+    <h1>IGP3 - Detalhes do Livro</h1>
+    <div class="header-right">
+        <span class="welcome-msg">Bem-vindo(a), <strong><span th:text="${usuarioNome}">Usuário</span>!</strong></span>
+        <span class="header-badge">Biblioteca Digital</span>
     </div>
+</header>
+
+<div class="main-layout">
+    <aside class="sidebar">
+        <a th:href="@{/usuario/testUser}" class="sidebar-item" data-tooltip="Home">
+            <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        </a>
+        <a th:href="@{/usuario/emprestimos}" class="sidebar-item" data-tooltip="Meus Empréstimos">
+            <svg viewBox="0 0 24 24"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0-2-.9-2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
+        </a>
+        <a th:href="@{/logout}" class="sidebar-item sidebar-logout" data-tooltip="Sair">
+            <svg viewBox="0 0 24 24"><path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.1 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
+        </a>
+    </aside>
+
+    <main class="content-container">
+        <div style="width: 100%; max-width: 900px;">
+            <!-- ALERTAS DE ERRO -->
+            <div th:if="${erro}" class="alert alert-danger" th:text="${erro}"></div>
+
+            <div class="book-details-card">
+                <img class="book-cover" th:src="${livro.urlImagem != null and !livro.urlImagem.isEmpty() ? livro.urlImagem : 'https://via.placeholder.com/280x400?text=Capa+do+Livro'}" th:alt="${livro.titulo}" />
+
+                <div class="book-info">
+                    <h2 th:text="${livro.titulo}">Título do Livro</h2>
+                    <p><strong>Autor:</strong> <span th:text="${livro.autor}">Autor</span></p>
+                    <p><strong>Editora:</strong> <span th:text="${livro.editora}">Editora</span></p>
+                    <p><strong>Ano de Publicação:</strong> <span th:text="${livro.anoPublicacao}">Ano</span></p>
+                    <p><strong>Categoria:</strong> <span th:text="${livro.categoria}">Categoria</span></p>
+                    <p><strong>Categoria Restrição:</strong> <span th:text="${livro.categoriaRestricao}">PADRAO</span></p>
+                    <p><strong>Sinopse:</strong> <span th:text="${livro.sinopse != null and !livro.sinopse.isEmpty() ? livro.sinopse : 'Nenhuma sinopse cadastrada.'}">Sinopse</span></p>
+
+                    <p>
+                        <strong>Status do Acervo:</strong>
+                        <span th:class="${status == 'DISPONIVEL' ? 'badge-status badge-disponivel' : 'badge-status badge-indisponivel'}" th:text="${status}">DISPONIVEL</span>
+                    </p>
+
+                    <div class="actions-group">
+                        <form th:if="${status == 'DISPONIVEL'}" th:action="@{/usuario/efetuar-emprestimo}" method="post" style="display: inline;">
+                            <input type="hidden" name="isbn" th:value="${livro.isbn}" />
+                            <button type="submit" class="btn-action btn-emprestar">Pegar Empréstimo</button>
+                        </form>
+                        <a th:href="@{'/usuario/reserva/' + ${livro.isbn}}" class="btn-action btn-reservar">Fazer Reserva</a>
+                        <a th:href="@{/usuario/testUser}" class="btn-action btn-voltar">Voltar ao Acervo</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
 </div>
 
 </body>
