@@ -45,6 +45,7 @@ public class AdminController {
     @Autowired
     private ReservaRepository reservaRepository;
 
+    //Ver quem entra no testAdm (segurança)
     @GetMapping("/testAdm")
     public String testAdm(HttpSession session, Model model) {
         Usuario logado = (Usuario) session.getAttribute("usuarioLogado");
@@ -68,7 +69,9 @@ public class AdminController {
         return "admin/testAdm";
     }
 
-    // Ajax Polling para o Admin
+    /*  Em segundo plano de forma invisível é buscar a informação para saber se há novos dados (tipo um F5).
+        Dispara uma atualização na tela para exibir os novos dados de forma automática (Ajax Polling)
+     */
     @GetMapping("/api/check-notificacoes")
     @ResponseBody
     public Map<String, Integer> checkNotificacoes() {

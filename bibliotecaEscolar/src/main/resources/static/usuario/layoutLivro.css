@@ -1,0 +1,52 @@
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+body { background-color: #f4f6f9; display: flex; flex-direction: column; min-height: 100vh; }
+
+.header-content {
+    background-color: #002b5c;
+    color: white;
+    width: 100%;
+    height: 75px;
+    padding: 0 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    position: fixed;
+    top: 0; left: 0; z-index: 1000;
+}
+.header-content h1 { font-size: 1.5rem; font-weight: 600; margin: 0; }
+.header-right { display: flex; align-items: center; gap: 20px; }
+.welcome-msg { font-size: 1.05rem; font-weight: 500; }
+.header-badge { background-color: #ffd166; color: #1e293b; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; }
+
+.main-layout { display: flex; margin-top: 75px; width: 100%; flex: 1; }
+.sidebar { width: 75px; background-color: #ffffff; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; align-items: center; padding-top: 25px; position: fixed; top: 75px; bottom: 0; left: 0; z-index: 900; }
+.sidebar-item { position: relative; width: 50px; height: 50px; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; border-radius: 10px; color: #475569; text-decoration: none; transition: 0.2s; }
+.sidebar-item svg { width: 24px; height: 24px; fill: currentColor; }
+.sidebar-item:hover, .sidebar-item.active { background-color: #002b5c; color: #ffd166; }
+
+.sidebar-logout { margin-top: auto; margin-bottom: 25px; background-color: #dc2626 !important; color: white !important; }
+.sidebar-logout:hover { background-color: #b91c1c !important; }
+
+.content-container { margin-left: 75px; padding: 40px; flex: 1; display: flex; justify-content: center; align-items: flex-start; }
+.book-details-card { background: white; border-radius: 12px; padding: 35px; border: 1px solid #e2e8f0; display: flex; gap: 40px; max-width: 900px; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+.book-cover { width: 280px; height: 400px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1; }
+.book-info { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+.book-info h2 { font-size: 2rem; color: #002b5c; margin-bottom: 5px; }
+.book-info p { font-size: 1rem; color: #475569; }
+.book-info strong { color: #1e293b; }
+.badge-status { display: inline-block; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.85rem; width: fit-content; }
+.badge-disponivel { background-color: #d1fae5; color: #065f46; }
+.badge-indisponivel { background-color: #fee2e2; color: #991b1b; }
+
+.actions-group { display: flex; gap: 15px; margin-top: 20px; align-items: center; }
+.btn-action { padding: 12px 24px; border-radius: 8px; font-weight: bold; text-decoration: none; text-align: center; font-size: 1rem; transition: 0.2s; display: inline-block; border: none; cursor: pointer; }
+.btn-emprestar { background-color: #002b5c; color: white; }
+.btn-emprestar:hover { background-color: #001d3d; }
+.btn-reservar { background-color: #f59e0b; color: white; }
+.btn-reservar:hover { background-color: #d97706; }
+.btn-voltar { background-color: #e2e8f0; color: #475569; }
+.btn-voltar:hover { background-color: #cbd5e1; }
+
+.alert { padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; text-align: center; }
+.alert-danger { background-color: #fee2e2; color: #991b1b; border: 1px solid #f87171; }

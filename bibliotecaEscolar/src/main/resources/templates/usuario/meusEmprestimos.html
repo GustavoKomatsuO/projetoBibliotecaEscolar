@@ -4,57 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meus Empréstimos e Reservas - IGP3</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #f4f6f9; display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; }
-
-        .header-content { background-color: #002b5c; color: white; width: 100%; height: 75px; padding: 0 40px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: fixed; top: 0; left: 0; z-index: 1000; }
-        .header-content h1 { font-size: 1.5rem; font-weight: 600; margin: 0; }
-        .header-right { display: flex; align-items: center; gap: 20px; }
-        .welcome-msg { font-size: 1.05rem; font-weight: 500; }
-        .header-badge { background-color: #ffd166; color: #1e293b; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; }
-
-        .main-layout { display: flex; margin-top: 75px; width: 100%; flex: 1; }
-        .sidebar { width: 75px; background-color: #ffffff; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; align-items: center; padding-top: 25px; position: fixed; top: 75px; bottom: 0; left: 0; z-index: 900; }
-        .sidebar-item { position: relative; width: 50px; height: 50px; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; border-radius: 10px; color: #475569; text-decoration: none; transition: 0.2s; cursor: pointer; }
-        .sidebar-item svg { width: 24px; height: 24px; fill: currentColor; }
-        .sidebar-item:hover, .sidebar-item.active { background-color: #002b5c; color: #ffd166; }
-
-        .sidebar-logout { margin-top: auto; margin-bottom: 25px; background-color: #dc2626 !important; color: white !important; }
-        .sidebar-logout:hover { background-color: #b91c1c !important; }
-
-        .sidebar-item::after { content: attr(data-tooltip); position: absolute; left: 80px; background-color: #1e293b; color: white; padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; white-space: nowrap; opacity: 0; visibility: hidden; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.15); z-index: 1100; pointer-events: none; }
-        .sidebar-item:hover::after { opacity: 1; visibility: visible; }
-
-        .container { margin-left: 75px; padding: 30px; flex: 1; width: calc(100% - 75px); }
-
-        h2 { color: #002b5c; margin-bottom: 20px; font-size: 1.6rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;}
-
-        .table-wrapper { background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        table { width: 100%; border-collapse: collapse; text-align: left; }
-        th, td { padding: 15px; border-bottom: 1px solid #e2e8f0; }
-        th { background-color: #f8fafc; color: #475569; font-weight: 600; font-size: 0.95rem; text-transform: uppercase; }
-        td { color: #1e293b; font-size: 0.95rem; }
-        tr:last-child td { border-bottom: none; }
-
-        .btn-cancel { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; padding: 8px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 0.85rem;}
-        .btn-cancel:hover { background: #f87171; color: white; border-color: #f87171; }
-        .btn-devolver { background: #3b82f6; color: white; border: none; padding: 8px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 0.85rem; }
-        .btn-devolver:hover { background: #2563eb; }
-        .btn-acervo { display: inline-block; background: #002b5c; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-bottom: 20px; transition: 0.2s; }
-        .btn-acervo:hover { background: #001d3d; }
-
-        .alert { padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; text-align: center; transition: opacity 0.5s ease; }
-        .alert-success { background-color: #d1fae5; color: #065f46; border: 1px solid #34d399; }
-        .alert-danger { background-color: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
-        .empty-msg { padding: 20px; color: #64748b; font-style: italic; text-align: center; }
-
-        .badge-posicao { background-color: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 12px; font-weight: bold; font-size: 0.85rem; border: 1px solid #bae6fd; display: inline-block; margin-top: 4px; }
-
-        /* Toast Message de 7 Segundos */
-        #toastContainer { position: fixed; bottom: 30px; right: 30px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; }
-        .toast-msg { background-color: #10b981; color: white; padding: 15px 25px; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: opacity 0.5s ease; opacity: 1; }
-    </style>
+    <link rel="stylesheet" th:href="@{/usuario/meusEmprestimos.css}">
 </head>
 <body>
 
