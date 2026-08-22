@@ -41,10 +41,49 @@ public class LoginController {
     @Autowired
     private ReservaRepository reservaRepository;
 
-    // ==========================================
-    // MÉTODO AUXILIAR DE DESENVOLVIMENTO
-    // Evita a perda de sessão ao salvar alterações no código
-    // ==========================================
+
+    /* MÉTODO AUXILIAR DE VALIDAÇÃO OFICIAL DE CPF */
+    private boolean isCpfValido(String cpf) {
+        if (cpf == null) return false;
+        String cpfLimpo = cpf.replaceAll("[^0-9]", "");
+
+        if (cpfLimpo.length() != 11) return false;
+
+        // Verifica sequências repetidas (ex: 111.111.111-11)
+        if (cpfLimpo.matches("(\\d)\\1{10}")) return false;
+
+        try {
+            // Cálculo do 1º Dígito Verificador
+            int soma = 0;
+            for (int i = 0; i < 9; i++) {
+                soma += (cpfLimpo.charAt(i) - '0') * (10 - i);
+            }
+            int resto = 11 - (soma % 11);
+            int digito1 = (resto >= 10) ? 0 : resto;
+
+            if (digito1 != (cpfLimpo.charAt(9) - '0')) return false;
+
+            // Cálculo do 2º Dígito Verificador
+            soma = 0;
+            for (int i = 0; i < 10; i++) {
+                soma += (cpfLimpo.charAt(i) - '0') * (11 - i);
+            }
+            resto = 11 - (soma % 11);
+            int digito2 = (resto >= 10) ? 0 : resto;
+
+            return digito2 == (cpfLimpo.charAt(10) - '0');
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+
+    /* MÉTODO AUXILIAR DE DESENVOLVIMENTO
+     Evita a perda de sessão ao salvar alterações no código
+
+     ele busca o primeiro usuário cadastrado no banco de dados e o injeta automaticamente na sessão,
+     evitando que você precise ficar fazendo login manualmente o tempo todo durante os testes.
+     */
     private Usuario obterOuInjetarUsuarioDev(HttpSession session) {
         Usuario logado = (Usuario) session.getAttribute("usuarioLogado");
         if (logado == null) {
@@ -56,9 +95,8 @@ public class LoginController {
         return logado;
     }
 
-    // ==========================================
-    // ROTAS DE AUTENTICAÇÃO E CADASTRO
-    // ==========================================
+
+    // Rotas de autentificação de cadastro
 
     @GetMapping("/")
     public String index() {
@@ -85,8 +123,8 @@ public class LoginController {
             usuario.setCpf(cpfLimpo);
         }
 
-        if (usuario.getCpf() == null || usuario.getCpf().length() != 11) {
-            model.addAttribute("erro", "O CPF é obrigatório e deve ter exatamente 11 dígitos numéricos!");
+        if (!isCpfValido(usuario.getCpf())) {
+            model.addAttribute("erro", "O CPF informado é inválido!");
             return "usuario/cadastrarUser";
         }
 
@@ -141,9 +179,7 @@ public class LoginController {
         return "redirect:/login";
     }
 
-    // ==========================================
-    // ROTAS DO ACERVO DO USUÁRIO
-    // ==========================================
+    // Caminhos do acervo do usuário
 
     @GetMapping("/usuario/testUser")
     public String testUser(HttpSession session, Model model) {
@@ -185,9 +221,8 @@ public class LoginController {
         return "usuario/layoutLivro";
     }
 
-    // ==========================================
-    // REGRAS DE NEGÓCIO DE EMPRÉSTIMO APLICADAS
-    // ==========================================
+
+    // Regras de negócio de empréstimo aplicadas
 
     @GetMapping("/usuario/emprestimo/{isbn}")
     public String paginaEmprestimoUsuario(@PathVariable("isbn") Long isbn, HttpSession session, Model model, RedirectAttributes redirectAttributes) {
@@ -309,9 +344,9 @@ public class LoginController {
         return "redirect:/usuario/testUser";
     }
 
-    // ==========================================
-    // REGRAS DE NEGÓCIO DE RESERVA APLICADAS
-    // ==========================================
+
+    // Regras de negócio de reservas aplicadas
+
 
     @GetMapping("/usuario/reserva/{isbn}")
     public String paginaReservaUsuario(@PathVariable("isbn") Long isbn, HttpSession session, Model model, RedirectAttributes redirectAttributes) {
@@ -380,9 +415,9 @@ public class LoginController {
         return "redirect:/usuario/testUser";
     }
 
-    // ==========================================
-    // ROTA MEUS EMPRÉSTIMOS, HISTÓRICO E CANCELAMENTOS
-    // ==========================================
+
+    // Rota de empréstimo, histórico e cancelamentos do usuário
+
 
     @GetMapping("/usuario/emprestimos")
     public String meusEmprestimos(HttpSession session, Model model) {
@@ -477,9 +512,9 @@ public class LoginController {
         return "redirect:/usuario/emprestimos";
     }
 
-    // ==========================================
-    // ENDPOINT DE AJAX POLLING PARA NOTIFICAÇÕES (USUÁRIO)
-    // ==========================================
+
+    //(Ajax Polling) Código que verifica se o usuário logado tem novas notificações de empréstimos sem precisar de sair da tela (ou dar F5)
+
 
     @GetMapping("/usuario/api/notificacoes")
     @ResponseBody

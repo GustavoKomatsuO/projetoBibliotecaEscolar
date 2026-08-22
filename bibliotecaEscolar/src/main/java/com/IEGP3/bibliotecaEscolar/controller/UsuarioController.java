@@ -17,7 +17,42 @@ public class UsuarioController {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
-    // 1. Listar todos os usuários (Painel Administrativo)
+    /* MÉTODO AUXILIAR DE VALIDAÇÃO OFICIAL DE CPF */
+    private boolean isCpfValido(String cpf) {
+        if (cpf == null) return false;
+        String cpfLimpo = cpf.replaceAll("[^0-9]", "");
+
+        if (cpfLimpo.length() != 11) return false;
+
+        // Verifica sequências repetidas (ex: 111.111.111-11)
+        if (cpfLimpo.matches("(\\d)\\1{10}")) return false;
+
+        try {
+            // Cálculo do 1º Dígito Verificador
+            int soma = 0;
+            for (int i = 0; i < 9; i++) {
+                soma += (cpfLimpo.charAt(i) - '0') * (10 - i);
+            }
+            int resto = 11 - (soma % 11);
+            int digito1 = (resto >= 10) ? 0 : resto;
+
+            if (digito1 != (cpfLimpo.charAt(9) - '0')) return false;
+
+            // Cálculo do 2º Dígito Verificador
+            soma = 0;
+            for (int i = 0; i < 10; i++) {
+                soma += (cpfLimpo.charAt(i) - '0') * (11 - i);
+            }
+            resto = 11 - (soma % 11);
+            int digito2 = (resto >= 10) ? 0 : resto;
+
+            return digito2 == (cpfLimpo.charAt(10) - '0');
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    //  Listas de todos os usuários (Painel Administrativo)
     @GetMapping
     public String listarUsuarios(Model model) {
         List<Usuario> usuarios = usuarioRepository.findAll();
@@ -25,38 +60,38 @@ public class UsuarioController {
         return "admin/listar-usuarios";
     }
 
-    // 2. Abrir o formulário de cadastro de novo usuário
+    //  Abre o formulário de cadastro de novo usuário
     @GetMapping("/novo")
     public String formularioNovoUsuario(@Nonnull Model model) {
         model.addAttribute("usuario", new Usuario());
         return "admin/cadastrar-usuario";
     }
 
-    // 3. Salvar um novo usuário ou atualizar um existente
+    //  Salva um novo usuário ou atualizar um existente
     @PostMapping("/salvar")
     public String salvarUsuario(Usuario usuario,
                                 @RequestParam(value = "confirmarSenha", required = false) String confirmarSenha,
                                 Model model) {
 
-        // 1. Limpa o CPF mantendo APENAS números
+        //  Limpa o CPF deixando apenas números
         if (usuario.getCpf() != null) {
             String cpfLimpo = usuario.getCpf().replaceAll("[^0-9]", "");
             usuario.setCpf(cpfLimpo);
         }
 
-        // 2. Validação ESTRITA: Exige exatamente 11 dígitos
-        if (usuario.getCpf() == null || usuario.getCpf().length() != 11) {
-            model.addAttribute("erro", "O CPF é obrigatório e deve conter exatamente 11 dígitos numéricos!");
+        //  Validação criteriosa: Algoritmo oficial dos dígitos verificadores
+        if (!isCpfValido(usuario.getCpf())) {
+            model.addAttribute("erro", "O CPF informado é inválido!");
             return "admin/cadastrar-usuario";
         }
 
-        // 3. Se for novo cadastro, valida se as senhas batem
+        //  Se for novo cadastro, valida se as senhas batem (nos campos senha e confirmar senha)
         if (usuario.getId() == null && confirmarSenha != null && !usuario.getSenha().equals(confirmarSenha)) {
             model.addAttribute("erro", "As senhas não coincidem!");
             return "admin/cadastrar-usuario";
         }
 
-        // 4. Se for novo cadastro, verifica se o CPF já está em uso
+        //  Se for novo cadastro, verifica se o CPF já está em uso
         if (usuario.getId() == null && usuarioRepository.findByCpf(usuario.getCpf()).isPresent()) {
             model.addAttribute("erro", "CPF já cadastrado no sistema!");
             return "admin/cadastrar-usuario";
@@ -69,7 +104,7 @@ public class UsuarioController {
         return "redirect:/admin/usuarios";
     }
 
-    // 4. Deletar um usuário pelo ID
+    //  Deleta um usuário pelo ID
     @GetMapping("/deletar/{id}")
     public String deletarUsuario(@PathVariable("id") Long id) {
         usuarioRepository.deleteById(id);

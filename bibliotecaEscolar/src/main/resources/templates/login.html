@@ -16,7 +16,7 @@
     <form th:action="@{/autenticar}" method="post">
         <div class="input-group">
             <label for="cpf">CPF</label>
-            <input type="text" id="cpf" name="cpf" placeholder="000.000.000-00" required>
+            <input type="text" id="cpf" name="cpf" placeholder="000.000.000-00" maxlength="14" required>
         </div>
 
         <div class="input-group">
@@ -35,5 +35,19 @@
 
     <p class="footer-text">Peço que entre em contato com o suporte</p>
 </article>
+
+<script>
+    const inputCpfLogin = document.getElementById('cpf');
+
+    if (inputCpfLogin) {
+        inputCpfLogin.addEventListener('input', function (e) {
+            let valor = e.target.value.replace(/\D/g, '');
+            valor = valor.replace(/(\d{3})(\d)/, '$1.$2');
+            valor = valor.replace(/(\d{3})(\d)/, '$1.$2');
+            valor = valor.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            e.target.value = valor;
+        });
+    }
+</script>
 </body>
 </html>

@@ -42,6 +42,7 @@ public class Emprestimo {
 
     public Emprestimo() {}
 
+
     // Getters e Setters
     public Long getIdEmprestimo() { return idEmprestimo; }
     public void setIdEmprestimo(Long idEmprestimo) { this.idEmprestimo = idEmprestimo; }

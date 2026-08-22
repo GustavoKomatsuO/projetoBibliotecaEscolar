@@ -17,11 +17,12 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
+// redirecionamento web automatico para /admin/emprestimos
 @Controller
 @RequestMapping("/admin/emprestimos")
 public class EmprestimoController {
 
+    //  executa automaticamente recursos
     @Autowired
     private EmprestimoRepository emprestimoRepository;
 
@@ -34,6 +35,7 @@ public class EmprestimoController {
     @Autowired
     private ReservaRepository reservaRepository;
 
+    //  Mostra a tela com a lista de todos os empréstimos
     @GetMapping
     public String listarEmprestimos(HttpSession session, Model model) {
         Usuario logado = (Usuario) session.getAttribute("usuarioLogado");
@@ -46,6 +48,7 @@ public class EmprestimoController {
         return "admin/emprestimos";
     }
 
+    //  Ativa um empréstimo
     @PostMapping("/confirmar-retirada/{id}")
     public String confirmarRetirada(@PathVariable("id") Long idEmprestimo, RedirectAttributes redirectAttributes) {
         Optional<Emprestimo> emprestimoOpt = emprestimoRepository.findById(idEmprestimo);
@@ -55,6 +58,8 @@ public class EmprestimoController {
             return "redirect:/admin/testAdm";
         }
 
+
+        //  define a data de devoluçao
         Emprestimo emp = emprestimoOpt.get();
         Usuario usuario = emp.getUsuario();
 
@@ -76,6 +81,7 @@ public class EmprestimoController {
         return "redirect:/admin/testAdm";
     }
 
+    //  Cria um empréstimo novo do zero
     @PostMapping("/salvar")
     public String realizarEmprestimo(@RequestParam("cpfUsuario") String cpfUsuario,
                                      @RequestParam("idExemplar") Long idExemplar,
@@ -84,6 +90,7 @@ public class EmprestimoController {
         String cpfLimpo = (cpfUsuario != null) ? cpfUsuario.replaceAll("[^0-9]", "") : "";
         Optional<Usuario> usuarioOpt = usuarioRepository.findByCpf(cpfLimpo);
 
+        //  mensagens de erro
         if (usuarioOpt.isEmpty()) {
             redirectAttributes.addFlashAttribute("erro", "Usuário não encontrado!");
             return "redirect:/admin/testAdm";
@@ -109,6 +116,7 @@ public class EmprestimoController {
             return "redirect:/admin/testAdm";
         }
 
+        //  cria o registro do empréstimo e marca o livro como indisponivel
         int diasEmprestimo = 7;
         if (usuario.getTipoUsuario() == TipoUsuario.INSTRUTOR) {
             diasEmprestimo = 15;
@@ -133,6 +141,7 @@ public class EmprestimoController {
         return "redirect:/admin/testAdm";
     }
 
+    //  Registra que o livro foi devolvido e aplica punições se houver atraso
     @PostMapping("/devolver/{id}")
     public String devolverExemplar(@PathVariable("id") Long idEmprestimo, RedirectAttributes redirectAttributes) {
         Optional<Emprestimo> emprestimoOpt = emprestimoRepository.findById(idEmprestimo);
@@ -192,6 +201,7 @@ public class EmprestimoController {
         return "redirect:/admin/testAdm";
     }
 
+    //  permite que o aluno solicite a devoluçao de um livro
     @PostMapping("/solicitar-devolucao")
     public String solicitarDevolucaoUsuario(@RequestParam("idEmprestimo") Long idEmprestimo, RedirectAttributes redirectAttributes) {
         Optional<Emprestimo> emprestimoOpt = emprestimoRepository.findById(idEmprestimo);

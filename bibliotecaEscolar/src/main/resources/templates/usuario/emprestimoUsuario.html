@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="pt-br">
 <body>
-<!-- ... (Header e Sidebar mantidos igual) ... -->
 <main class="container">
-    <!-- MEUS EMPRÉSTIMOS / SOLICITAÇÕES -->
+    <!-- MEUS EMPRÉSTIMOS / SOLICITAÇÕES-->
     <h2>Meus Empréstimos e Solicitações</h2>
     <div class="table-wrapper">
         <table>
@@ -27,7 +26,7 @@
                     <span th:if="${emp.status.name() == 'AGUARDANDO_DEVOLUCAO'}" style="color: #3b82f6; font-weight: bold;">Aguardando Aprovação da Devolução</span>
                 </td>
                 <td>
-                    <!-- NOVA AÇÃO: Solicitar Devolução muda status mas não devolve direto -->
+                    <!-- Solicitar Devolução muda status mas não devolve direto -->
                     <form th:if="${emp.status.name() == 'EM_ANDAMENTO'}" th:action="@{/usuario/emprestimo/solicitar-devolucao}" method="post">
                         <input type="hidden" name="idEmprestimo" th:value="${emp.idEmprestimo}" />
                         <button type="submit" class="btn-cancel" style="background: #3b82f6; color: white; border: none;">Devolver Livro</button>
@@ -60,7 +59,7 @@
                 <td th:text="${res.livro.titulo}">Título</td>
                 <td th:text="${res.dataReserva}">00/00/0000</td>
                 <td>
-                    <!-- NOVA LÓGICA: Exibição da Posição na Fila -->
+                    <!-- Exibição da Posição na Fila -->
                     <span th:if="${res.status == 'PENDENTE'}" style="color: #b45309; font-weight: bold;">
                             Pendente (Posição: <span th:text="${res.posicaoFila}">1</span>)
                         </span>
