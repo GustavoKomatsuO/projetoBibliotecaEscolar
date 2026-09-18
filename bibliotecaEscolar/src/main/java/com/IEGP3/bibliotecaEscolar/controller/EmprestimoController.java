@@ -190,7 +190,7 @@ public class EmprestimoController {
             proximaReserva.setStatus("AGUARDANDO_RETIRADA");
             reservaRepository.save(proximaReserva);
 
-            redirectAttributes.addFlashAttribute("alertaReserva", "🚨 ATENÇÃO: Este livro está reservado para o aluno: " + proximaReserva.getUsuario().getNome() + ". Ele tem 48h para buscar.");
+            redirectAttributes.addFlashAttribute("alertaReserva", " ATENÇÃO: Este livro está reservado para o aluno: " + proximaReserva.getUsuario().getNome() + ". Ele tem 48h para buscar.");
         } else {
             exemplar.setStatusDisponibilidade(StatusDisponibilidade.DISPONIVEL);
         }

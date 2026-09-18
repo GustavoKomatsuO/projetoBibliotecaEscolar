@@ -28,7 +28,6 @@ public class Emprestimo {
     @Column(nullable = false)
     private StatusEmprestimo status = StatusEmprestimo.EM_ANDAMENTO;
 
-    // NOVO CAMPO: Valor da Multa aplicada em caso de atraso
     @Column(name = "valor_multa")
     private BigDecimal valorMulta = BigDecimal.ZERO;
 

@@ -418,7 +418,6 @@ public class LoginController {
 
     // Rota de empréstimo, histórico e cancelamentos do usuário
 
-
     @GetMapping("/usuario/emprestimos")
     public String meusEmprestimos(HttpSession session, Model model) {
         Usuario logado = obterOuInjetarUsuarioDev(session);
@@ -513,8 +512,7 @@ public class LoginController {
     }
 
 
-    //(Ajax Polling) Código que verifica se o usuário logado tem novas notificações de empréstimos sem precisar de sair da tela (ou dar F5)
-
+    //(Ajax Polling)
 
     @GetMapping("/usuario/api/notificacoes")
     @ResponseBody
